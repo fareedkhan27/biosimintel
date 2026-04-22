@@ -3,22 +3,22 @@ from __future__ import annotations
 import asyncio
 from logging.config import fileConfig
 
-from alembic import context
-from sqlalchemy import pool
+from sqlalchemy import make_url, pool
 from sqlalchemy.engine import Connection
-from sqlalchemy.ext.asyncio import async_engine_from_config
+from sqlalchemy.ext.asyncio import create_async_engine
 
+from alembic import context
 from app.core.config import settings
 from app.db.session import Base
+from app.models.competitor import Competitor  # noqa: F401
+from app.models.data_provenance import DataProvenance  # noqa: F401
+from app.models.event import Event  # noqa: F401
 
 # Import all models so they are registered with Base metadata
 from app.models.molecule import Molecule  # noqa: F401
-from app.models.competitor import Competitor  # noqa: F401
-from app.models.source_document import SourceDocument  # noqa: F401
-from app.models.event import Event  # noqa: F401
-from app.models.data_provenance import DataProvenance  # noqa: F401
-from app.models.scoring_rule import ScoringRule  # noqa: F401
 from app.models.review import Review  # noqa: F401
+from app.models.scoring_rule import ScoringRule  # noqa: F401
+from app.models.source_document import SourceDocument  # noqa: F401
 
 config = context.config
 
@@ -56,11 +56,16 @@ async def run_async_migrations() -> None:
     configuration = config.get_section(config.config_ini_section)
     if configuration is None:
         raise RuntimeError("Alembic configuration section not found")
-    configuration["sqlalchemy.url"] = get_url()
-    connectable = async_engine_from_config(
-        configuration,
-        prefix="sqlalchemy.",
+
+    url = make_url(get_url())
+    # asyncpg does not accept sslmode/channel_binding as kwargs
+    filtered_query = {k: v for k, v in url.query.items() if k not in ("sslmode", "channel_binding")}
+    url = url.set(query=filtered_query)
+
+    connectable = create_async_engine(
+        url,
         poolclass=pool.NullPool,
+        connect_args={"ssl": True},  # Neon requires SSL
     )
 
     async with connectable.connect() as connection:
