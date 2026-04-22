@@ -23,8 +23,11 @@ class Settings(BaseSettings):
     OPENROUTER_MODEL_FALLBACK: str = "anthropic/claude-3.5-haiku"
 
     CLINICALTRIALS_BASE_URL: str = "https://clinicaltrials.gov/api/v2/studies"
-    EMA_API_BASE_URL: str = "https://api.example.com/ema"
+    EMA_API_BASE_URL: str = "https://www.ema.europa.eu/en/documents/report/medicines-output-medicines_json-report_en.json"
     SEC_EDGAR_BASE_URL: str = "https://data.sec.gov"
+    SEC_EDGAR_TICKERS_URL: str = "https://www.sec.gov/files/company_tickers.json"
+    SEC_EDGAR_SUBMISSIONS_URL: str = "https://data.sec.gov/submissions/CIK"
+    SEC_EDGAR_USER_AGENT: str = "Biosim/1.0 (your-email@example.com)"
     FDA_PURPLE_BOOK_URL: str = "https://purplebooksearch.fda.gov"
     N8N_WEBHOOK_BASE_URL: str = ""
     API_BASE_URL: str = "https://api.biosimintel.com"

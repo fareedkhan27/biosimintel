@@ -17,6 +17,7 @@ from app.models.source_document import SourceDocument
 from app.services.engine.deduplication import DeduplicationEngine
 from app.services.engine.scoring import ScoringEngine
 from app.services.engine.verification import VerificationEngine
+from app.services.ingestion.sponsor_mapping import SponsorMappingResult, SponsorMappingService
 
 logger = get_logger(__name__)
 
@@ -51,6 +52,7 @@ class ClinicalTrialsService:
         self.dedup = DeduplicationEngine()
         self.verification = VerificationEngine()
         self.scoring = ScoringEngine()
+        self.sponsor_mapping = SponsorMappingService()
 
     async def sync(self, molecule: Molecule, db: AsyncSession) -> None:
         search_terms: list[str] = molecule.search_terms or [molecule.molecule_name]  # type: ignore[assignment]
@@ -67,6 +69,8 @@ class ClinicalTrialsService:
 
         canonical_sponsors: set[str] = {c.lower() for c in (molecule.competitor_universe or [])}  # type: ignore[union-attr]
 
+        await self.sponsor_mapping.load_competitors(db, molecule.id)
+
         while True:
             if page_token:
                 params["pageToken"] = page_token
@@ -78,14 +82,31 @@ class ClinicalTrialsService:
             studies = data.get("studies", [])
             for study in studies:
                 protocol = study.get("protocolSection", {})
+                identification = protocol.get("identificationModule", {})
+                title = identification.get("briefTitle", "")
                 sponsor = protocol.get("sponsorCollaboratorsModule", {})
                 sponsor_name = sponsor.get("leadSponsor", {}).get("name", "")
+                sponsor_class = sponsor.get("leadSponsor", {}).get("class", "")
+
+                mapping = self.sponsor_mapping.map_sponsor_to_competitor(
+                    sponsor_name, sponsor_class, trial_title=title
+                )
+
+                if mapping.blocked:
+                    logger.info(
+                        "Sponsor blocked by mapping service",
+                        sponsor_name=sponsor_name,
+                        sponsor_class=sponsor_class,
+                        reason=mapping.blocked_reason,
+                    )
+                    total_filtered += 1
+                    continue
 
                 if canonical_sponsors and not self._sponsor_matches(sponsor_name, canonical_sponsors):
                     total_filtered += 1
                     continue
 
-                created = await self._process_study(study, molecule, db)
+                created = await self._process_study(study, molecule, db, mapping)
                 if created:
                     total_created += 1
 
@@ -120,6 +141,7 @@ class ClinicalTrialsService:
         study: dict[str, Any],
         molecule: Molecule,
         db: AsyncSession,
+        mapping: SponsorMappingResult,
     ) -> bool:
         protocol = study.get("protocolSection", {})
         identification = protocol.get("identificationModule", {})
@@ -176,6 +198,7 @@ class ClinicalTrialsService:
         event = Event(
             molecule_id=molecule.id,
             source_document_id=source_doc.id,
+            competitor_id=mapping.competitor.id if mapping.competitor else None,
             event_type="clinical_trial",
             event_subtype=phase if phase else None,
             development_stage=development_stage,
@@ -185,6 +208,7 @@ class ClinicalTrialsService:
             summary=f"Clinical trial {nct_id}: {title}",
             evidence_excerpt=raw_text[:1000],
             verification_status="pending",
+            review_status="flagged" if mapping.flag_for_review else "pending",
         )
         db.add(event)
         await db.flush()
@@ -217,6 +241,15 @@ class ClinicalTrialsService:
                 normalized_value=sponsor_name,
                 extraction_method="clinicaltrials_gov",
                 confidence=1.0,
+            ),
+            DataProvenance(
+                event_id=event.id,
+                source_document_id=source_doc.id,
+                field_name="competitor_id",
+                raw_value=sponsor_name,
+                normalized_value=mapping.competitor.canonical_name if mapping.competitor else None,
+                extraction_method=f"sponsor_mapping.{mapping.match_method}" if mapping.match_method else "sponsor_mapping.no_match",
+                confidence=mapping.confidence,
             ),
         ]
         for p in provenance_records:

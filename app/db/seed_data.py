@@ -100,6 +100,7 @@ COMPETITORS: list[dict[str, Any]] = [
         "launch_window": "~2028",
         "parent_company": "Amgen",
         "partnership_status": "solo",
+        "cik": "0000318154",
     },
     {
         "canonical_name": "Zydus",
@@ -156,6 +157,7 @@ COMPETITORS: list[dict[str, Any]] = [
         "launch_window": "TBD",
         "parent_company": "Novartis",
         "partnership_status": "solo",
+        "cik": "0001114448",
     },
     {
         "canonical_name": "Henlius",
@@ -211,6 +213,7 @@ COMPETITORS: list[dict[str, Any]] = [
         "launch_window": "TBD",
         "parent_company": "Dr. Reddy's Laboratories",
         "partnership_status": "solo",
+        "cik": "0000895417",
     },
     {
         "canonical_name": "Biocon Biologics",
