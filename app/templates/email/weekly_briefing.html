@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ subject }}</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f4f6f8;font-family:'Segoe UI',Helvetica,Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f4f6f8;">
+    <tr>
+      <td align="center" style="padding:24px 0;">
+        <table width="680" cellpadding="0" cellspacing="0" border="0" style="background-color:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
+          <!-- Header -->
+          <tr>
+            <td style="background:linear-gradient(135deg,#1e3a5f 0%,#2d5a87 100%);padding:32px 40px;color:#ffffff;">
+              <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td style="font-size:22px;font-weight:600;letter-spacing:0.5px;">
+                    Biosim Competitive Intelligence
+                  </td>
+                  <td align="right" style="font-size:12px;text-transform:uppercase;letter-spacing:1px;opacity:0.9;">
+                    {{ department | replace('_', ' ') | title }} &bull; {{ report_date }}
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Executive Summary Banner -->
+          <tr>
+            <td style="padding:28px 40px 8px 40px;">
+              <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f0f7ff;border-left:4px solid #2d5a87;border-radius:6px;">
+                <tr>
+                  <td style="padding:20px 24px;">
+                    <p style="margin:0 0 8px 0;font-size:11px;text-transform:uppercase;letter-spacing:1.2px;color:#2d5a87;font-weight:600;">Executive Summary</p>
+                    <p style="margin:0;font-size:15px;line-height:1.6;color:#1a202c;">{{ executive_summary }}</p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- LOE Dashboard -->
+          <tr>
+            <td style="padding:20px 40px;">
+              <p style="margin:0 0 12px 0;font-size:13px;text-transform:uppercase;letter-spacing:1px;color:#64748b;font-weight:600;">Loss of Exclusivity Dashboard</p>
+              <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td width="25%" style="padding:4px;">
+                    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#fef2f2;border-radius:6px;text-align:center;">
+                      <tr><td style="padding:16px 8px;">
+                        <p style="margin:0;font-size:11px;color:#991b1b;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">India</p>
+                        <p style="margin:4px 0 0 0;font-size:18px;font-weight:700;color:#dc2626;">OPEN</p>
+                      </td></tr>
+                    </table>
+                  </td>
+                  <td width="25%" style="padding:4px;">
+                    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#fff7ed;border-radius:6px;text-align:center;">
+                      <tr><td style="padding:16px 8px;">
+                        <p style="margin:0;font-size:11px;color:#9a3412;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">United States</p>
+                        <p style="margin:4px 0 0 0;font-size:18px;font-weight:700;color:#ea580c;">APPROACHING</p>
+                      </td></tr>
+                    </table>
+                  </td>
+                  <td width="25%" style="padding:4px;">
+                    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#eff6ff;border-radius:6px;text-align:center;">
+                      <tr><td style="padding:16px 8px;">
+                        <p style="margin:0;font-size:11px;color:#1e40af;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">European Union</p>
+                        <p style="margin:4px 0 0 0;font-size:18px;font-weight:700;color:#2563eb;">MONITOR</p>
+                      </td></tr>
+                    </table>
+                  </td>
+                  <td width="25%" style="padding:4px;">
+                    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f3f4f6;border-radius:6px;text-align:center;">
+                      <tr><td style="padding:16px 8px;">
+                        <p style="margin:0;font-size:11px;color:#374151;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Japan</p>
+                        <p style="margin:4px 0 0 0;font-size:18px;font-weight:700;color:#6b7280;">LONG HORIZON</p>
+                      </td></tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Event Cards -->
+          <tr>
+            <td style="padding:8px 40px 20px 40px;">
+              <p style="margin:0 0 16px 0;font-size:13px;text-transform:uppercase;letter-spacing:1px;color:#64748b;font-weight:600;">Competitive Event Cards</p>
+              {% for event in events %}
+              <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#fafbfc;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:16px;">
+                <tr>
+                  <td style="padding:20px 24px;">
+                    <!-- Event Header -->
+                    <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                      <tr>
+                        <td>
+                          <p style="margin:0;font-size:16px;font-weight:700;color:#1e293b;">{{ event.competitor_name }}</p>
+                          <p style="margin:4px 0 0 0;font-size:13px;color:#64748b;">{{ event.asset_code }} &bull; {{ event.development_stage | replace('_', ' ') | title }} &bull; {{ event.indication or 'N/A' }} &bull; {{ event.country or 'Global' }}</p>
+                        </td>
+                        <td align="right" valign="top">
+                          {% if event.traffic_light == 'Red' %}
+                          <span style="display:inline-block;padding:6px 14px;border-radius:20px;font-size:12px;font-weight:700;color:#ffffff;background-color:#dc2626;">Score: {{ event.threat_score }}</span>
+                          {% elif event.traffic_light == 'Amber' %}
+                          <span style="display:inline-block;padding:6px 14px;border-radius:20px;font-size:12px;font-weight:700;color:#ffffff;background-color:#ea580c;">Score: {{ event.threat_score }}</span>
+                          {% else %}
+                          <span style="display:inline-block;padding:6px 14px;border-radius:20px;font-size:12px;font-weight:700;color:#ffffff;background-color:#16a34a;">Score: {{ event.threat_score }}</span>
+                          {% endif %}
+                        </td>
+                      </tr>
+                    </table>
+
+                    <!-- Summary -->
+                    <p style="margin:14px 0 0 0;font-size:14px;line-height:1.6;color:#334155;">{{ event.summary or 'No summary available.' }}</p>
+
+                    <!-- Why It Matters -->
+                    {% if event.why_it_matters %}
+                    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:14px;background-color:#fffbeb;border-left:3px solid #d97706;border-radius:4px;">
+                      <tr><td style="padding:12px 16px;">
+                        <p style="margin:0 0 4px 0;font-size:11px;text-transform:uppercase;letter-spacing:0.8px;color:#b45309;font-weight:600;">Why It Matters</p>
+                        <p style="margin:0;font-size:13px;line-height:1.5;color:#78350f;">{{ event.why_it_matters }}</p>
+                      </td></tr>
+                    </table>
+                    {% endif %}
+
+                    <!-- Recommended Action -->
+                    {% if event.recommended_action %}
+                    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:10px;background-color:#ecfdf5;border-left:3px solid #059669;border-radius:4px;">
+                      <tr><td style="padding:12px 16px;">
+                        <p style="margin:0 0 4px 0;font-size:11px;text-transform:uppercase;letter-spacing:0.8px;color:#047857;font-weight:600;">Recommended Action</p>
+                        <p style="margin:0;font-size:13px;line-height:1.5;color:#064e3b;">{{ event.recommended_action }}</p>
+                      </td></tr>
+                    </table>
+                    {% endif %}
+
+                    <!-- Provenance -->
+                    {% if event.provenance_url %}
+                    <p style="margin:12px 0 0 0;font-size:12px;">
+                      <a href="{{ event.provenance_url }}" style="color:#2563eb;text-decoration:none;font-weight:500;">View Provenance &rarr;</a>
+                    </p>
+                    {% endif %}
+                  </td>
+                </tr>
+              </table>
+              {% else %}
+              <p style="margin:0;font-size:14px;color:#64748b;text-align:center;padding:24px;">No competitive events in the reporting period.</p>
+              {% endfor %}
+            </td>
+          </tr>
+
+          <!-- Milestones Table -->
+          {% if milestones %}
+          <tr>
+            <td style="padding:8px 40px 28px 40px;">
+              <p style="margin:0 0 16px 0;font-size:13px;text-transform:uppercase;letter-spacing:1px;color:#64748b;font-weight:600;">Upcoming Milestones</p>
+              <table width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;">
+                <thead>
+                  <tr style="background-color:#f1f5f9;">
+                    <th align="left" style="padding:10px 14px;font-size:11px;text-transform:uppercase;letter-spacing:0.6px;color:#475569;font-weight:600;border-bottom:2px solid #e2e8f0;">Date</th>
+                    <th align="left" style="padding:10px 14px;font-size:11px;text-transform:uppercase;letter-spacing:0.6px;color:#475569;font-weight:600;border-bottom:2px solid #e2e8f0;">Competitor</th>
+                    <th align="left" style="padding:10px 14px;font-size:11px;text-transform:uppercase;letter-spacing:0.6px;color:#475569;font-weight:600;border-bottom:2px solid #e2e8f0;">Milestone</th>
+                    <th align="center" style="padding:10px 14px;font-size:11px;text-transform:uppercase;letter-spacing:0.6px;color:#475569;font-weight:600;border-bottom:2px solid #e2e8f0;">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for ms in milestones %}
+                  <tr style="background-color:#ffffff;">
+                    <td style="padding:12px 14px;font-size:13px;color:#334155;border-bottom:1px solid #e2e8f0;">{{ ms.date }}</td>
+                    <td style="padding:12px 14px;font-size:13px;color:#334155;font-weight:600;border-bottom:1px solid #e2e8f0;">{{ ms.competitor }}</td>
+                    <td style="padding:12px 14px;font-size:13px;color:#334155;border-bottom:1px solid #e2e8f0;">{{ ms.milestone }}</td>
+                    <td align="center" style="padding:12px 14px;font-size:12px;border-bottom:1px solid #e2e8f0;">
+                      {% if ms.traffic_light == 'Red' %}
+                      <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background-color:#dc2626;margin-right:6px;vertical-align:middle;"></span><span style="color:#dc2626;font-weight:600;">Red</span>
+                      {% elif ms.traffic_light == 'Amber' %}
+                      <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background-color:#ea580c;margin-right:6px;vertical-align:middle;"></span><span style="color:#ea580c;font-weight:600;">Amber</span>
+                      {% else %}
+                      <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background-color:#16a34a;margin-right:6px;vertical-align:middle;"></span><span style="color:#16a34a;font-weight:600;">Green</span>
+                      {% endif %}
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </td>
+          </tr>
+          {% endif %}
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding:20px 40px;background-color:#f8fafc;border-top:1px solid #e2e8f0;text-align:center;">
+              <p style="margin:0;font-size:12px;color:#94a3b8;">Generated by Biosim Intelligence Platform &bull; {{ report_date }}</p>
+              <p style="margin:6px 0 0 0;font-size:11px;color:#cbd5e1;">This briefing uses only verified competitive intelligence data.</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
