@@ -67,6 +67,16 @@ def _resolve_region_email(country: str | None, region: str | None) -> str:
     return settings.EXECUTIVE_EMAIL
 
 
+def _resolve_competitor_name(event: Event) -> str:
+    """Resolve competitor name with fallback chain."""
+    if event.competitor and event.competitor.canonical_name:
+        return str(event.competitor.canonical_name)
+    direct_name = getattr(event, "competitor_name", None)
+    if direct_name:
+        return str(direct_name)
+    return "Unidentified Competitor"
+
+
 class IntelligenceService:
     """Department briefing generation service — uses ONLY verified data."""
 
@@ -138,7 +148,7 @@ class IntelligenceService:
         event_cards: list[dict[str, Any]] = []
         milestones: list[dict[str, Any]] = []
         for e in events:
-            competitor = e.competitor.canonical_name if e.competitor else "Unknown"
+            competitor = _resolve_competitor_name(e)
             asset_code = e.competitor.asset_code if e.competitor else "N/A"
             event_cards.append({
                 "competitor_name": competitor,
@@ -151,7 +161,7 @@ class IntelligenceService:
                 "summary": e.summary,
                 "why_it_matters": e.ai_why_it_matters,
                 "recommended_action": e.ai_recommended_action,
-                "provenance_url": f"/api/v1/events/{e.id}/provenance",
+                "provenance_url": f"{settings.API_BASE_URL}/api/v1/events/{e.id}/provenance",
             })
             if e.event_date:
                 milestones.append({
@@ -167,7 +177,7 @@ class IntelligenceService:
         )
         if events:
             top = events[0]
-            comp = top.competitor.canonical_name if top.competitor else "Unknown"
+            comp = _resolve_competitor_name(top)
             executive_summary += (
                 f"Top threat: {comp} ({top.development_stage or 'unknown'}) "
                 f"with score {top.threat_score} in {top.country or 'unknown market'}."
@@ -230,7 +240,7 @@ class IntelligenceService:
 
         if events:
             top_event = events[0]
-            competitor = top_event.competitor.canonical_name if top_event.competitor else "Unknown"
+            competitor = _resolve_competitor_name(top_event)
             executive_summary += (
                 f"Highest threat is {competitor} ({top_event.development_stage or 'unknown stage'}) "
                 f"with a threat score of {top_event.threat_score}."
@@ -240,7 +250,7 @@ class IntelligenceService:
 
         market_sections: list[dict[str, Any]] = []
         for e in events:
-            competitor = e.competitor.canonical_name if e.competitor else "Unknown"
+            competitor = _resolve_competitor_name(e)
             market_sections.append({
                 "competitor": competitor,
                 "event_type": e.event_type,
@@ -255,7 +265,7 @@ class IntelligenceService:
         milestones: list[dict[str, Any]] = []
         for e in events:
             if e.event_date:
-                competitor = e.competitor.canonical_name if e.competitor else "Unknown"
+                competitor = _resolve_competitor_name(e)
                 milestones.append({
                     "date": e.event_date.isoformat(),
                     "competitor": competitor,

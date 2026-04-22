@@ -27,6 +27,7 @@ class Settings(BaseSettings):
     SEC_EDGAR_BASE_URL: str = "https://data.sec.gov"
     FDA_PURPLE_BOOK_URL: str = "https://purplebooksearch.fda.gov"
     N8N_WEBHOOK_BASE_URL: str = ""
+    API_BASE_URL: str = "https://api.biosimintel.com"
 
     SMTP_HOST: str = ""
     SMTP_PORT: int = 587

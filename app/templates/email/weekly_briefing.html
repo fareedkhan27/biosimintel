@@ -95,7 +95,7 @@
                     <table width="100%" cellpadding="0" cellspacing="0" border="0">
                       <tr>
                         <td>
-                          <p style="margin:0;font-size:16px;font-weight:700;color:#1e293b;">{{ event.competitor_name }}</p>
+                          <p style="margin:0;font-size:16px;font-weight:700;color:#1e293b;">{{ event.competitor_name or 'Unidentified Competitor' }}</p>
                           <p style="margin:4px 0 0 0;font-size:13px;color:#64748b;">{{ event.asset_code }} &bull; {{ event.development_stage | replace('_', ' ') | title }} &bull; {{ event.indication or 'N/A' }} &bull; {{ event.country or 'Global' }}</p>
                         </td>
                         <td align="right" valign="top">
@@ -166,7 +166,7 @@
                   {% for ms in milestones %}
                   <tr style="background-color:#ffffff;">
                     <td style="padding:12px 14px;font-size:13px;color:#334155;border-bottom:1px solid #e2e8f0;">{{ ms.date }}</td>
-                    <td style="padding:12px 14px;font-size:13px;color:#334155;font-weight:600;border-bottom:1px solid #e2e8f0;">{{ ms.competitor }}</td>
+                    <td style="padding:12px 14px;font-size:13px;color:#334155;font-weight:600;border-bottom:1px solid #e2e8f0;">{{ ms.competitor or 'Unidentified Competitor' }}</td>
                     <td style="padding:12px 14px;font-size:13px;color:#334155;border-bottom:1px solid #e2e8f0;">{{ ms.milestone }}</td>
                     <td align="center" style="padding:12px 14px;font-size:12px;border-bottom:1px solid #e2e8f0;">
                       {% if ms.traffic_light == 'Red' %}
