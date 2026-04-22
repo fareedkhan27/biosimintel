@@ -3,7 +3,9 @@ from __future__ import annotations
 from typing import Any
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -13,6 +15,8 @@ from app.models.event import Event
 from app.schemas.event import EventRead
 
 router = APIRouter()
+
+templates = Jinja2Templates(directory="app/templates")
 
 
 @router.get("", response_model=list[EventRead])
@@ -102,3 +106,83 @@ async def interpret_event(
     await db.commit()
     await db.refresh(event)
     return event
+
+
+async def get_provenance_data(db: AsyncSession, event_id: UUID) -> dict[str, Any] | None:
+    """Fetch enriched provenance data for HTML rendering."""
+    from app.models.data_provenance import DataProvenance
+    from app.models.source_document import SourceDocument
+
+    result = await db.execute(
+        select(Event, SourceDocument)
+        .outerjoin(SourceDocument, Event.source_document_id == SourceDocument.id)
+        .where(Event.id == event_id)
+    )
+    row = result.first()
+    if not row:
+        return None
+
+    event, source_doc = row
+
+    sponsor_result = await db.execute(
+        select(DataProvenance)
+        .where(DataProvenance.event_id == event_id)
+        .where(DataProvenance.field_name == "sponsor")
+    )
+    sponsor_prov = sponsor_result.scalar_one_or_none()
+    sponsor = None
+    if sponsor_prov:
+        sponsor = sponsor_prov.normalized_value or sponsor_prov.raw_value
+
+    return {
+        "nct_id": source_doc.external_id if source_doc else None,
+        "title": source_doc.title if source_doc else None,
+        "sponsor": sponsor,
+        "phase": event.event_subtype,
+        "status": event.verification_status,
+        "first_posted": (
+            source_doc.published_at.isoformat()
+            if source_doc and source_doc.published_at
+            else (event.created_at.isoformat() if event.created_at else None)
+        ),
+        "last_updated": event.updated_at.isoformat() if event.updated_at else None,
+        "threat_score": event.threat_score or 0,
+        "summary": event.summary,
+        "ingested_at": (
+            source_doc.fetched_at.isoformat()
+            if source_doc and source_doc.fetched_at
+            else (event.created_at.isoformat() if event.created_at else None)
+        ),
+    }
+
+
+@router.get("/{event_id}/provenance/view", response_class=HTMLResponse)
+async def get_provenance_view(
+    request: Request,
+    event_id: UUID,
+    db: AsyncSession = Depends(get_db),
+) -> HTMLResponse:
+    """
+    Human-readable HTML view of provenance data.
+    The existing JSON endpoint at /{event_id}/provenance remains untouched.
+    """
+    data = await get_provenance_data(db, event_id)
+    if not data:
+        raise HTTPException(status_code=404, detail="Event not found")
+
+    return templates.TemplateResponse(
+        request,
+        "provenance.html",
+        {
+            "nct_id": data.get("nct_id"),
+            "title": data.get("title"),
+            "sponsor": data.get("sponsor"),
+            "phase": data.get("phase"),
+            "status": data.get("status"),
+            "first_posted": data.get("first_posted"),
+            "last_updated": data.get("last_updated"),
+            "threat_score": data.get("threat_score", 0),
+            "summary": data.get("summary"),
+            "ingested_at": data.get("ingested_at"),
+        },
+    )
