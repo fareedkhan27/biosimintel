@@ -157,7 +157,7 @@ COMPETITORS: list[dict[str, Any]] = [
         "launch_window": "TBD",
         "parent_company": "Novartis",
         "partnership_status": "solo",
-        "cik": "0001114448",
+        "cik": "0000718877",
     },
     {
         "canonical_name": "Henlius",

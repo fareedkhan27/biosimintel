@@ -1,0 +1,80 @@
+{% from "partials/_heatmap_macro.html" import heatmap_table %}
+
+<style type="text/css">
+  @media only screen and (max-width: 600px) {
+    .heatmap-cell { width: 40px !important; font-size: 10px !important; }
+    .heatmap-cell div { width: 40px !important; }
+    .indication-label { font-size: 11px !important; }
+    th { font-size: 10px !important; min-width: 50px !important; }
+  }
+</style>
+
+<!-- Summary Cards -->
+<table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:20px;">
+  <tr>
+    <td width="32%" style="padding:4px;">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:{{ vi_bg }};border-radius:6px;text-align:center;">
+        <tr><td style="padding:16px 8px;">
+          <div style="font-size:10px;color:{{ vi_fg }};font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Vulnerability Index</div>
+          <div style="margin-top:4px;font-size:22px;font-weight:700;color:{{ vi_fg }}">{{ landscape.vulnerability_index }}</div>
+        </td></tr>
+      </table>
+    </td>
+    <td width="2%"></td>
+    <td width="32%" style="padding:4px;">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f0f9ff;border-radius:6px;text-align:center;">
+        <tr><td style="padding:16px 8px;">
+          <div style="font-size:10px;color:#0369a1;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">White Spaces</div>
+          <div style="margin-top:4px;font-size:22px;font-weight:700;color:#0284c7;">{{ landscape.white_space_indications|length }}</div>
+          {% if landscape.white_space_indications %}
+          <div style="margin-top:4px;font-size:10px;color:#0369a1;line-height:1.3;">{{ landscape.white_space_indications[:3]|join(', ') }}{% if landscape.white_space_indications|length > 3 %}…{% endif %}</div>
+          {% endif %}
+        </td></tr>
+      </table>
+    </td>
+    <td width="2%"></td>
+    <td width="32%" style="padding:4px;">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#fef2f2;border-radius:6px;text-align:center;">
+        <tr><td style="padding:16px 8px;">
+          <div style="font-size:10px;color:#991b1b;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">Contested Zones</div>
+          <div style="margin-top:4px;font-size:22px;font-weight:700;color:#dc2626;">{{ landscape.contested_indications|length }}</div>
+          {% if landscape.contested_indications %}
+          <div style="margin-top:4px;font-size:10px;color:#991b1b;line-height:1.3;">{{ landscape.contested_indications[:3]|join(', ') }}{% if landscape.contested_indications|length > 3 %}…{% endif %}</div>
+          {% endif %}
+        </td></tr>
+      </table>
+    </td>
+  </tr>
+</table>
+
+<!-- Heatmap Table -->
+<table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:16px;">
+  <tr>
+    <td style="padding:8px 0;">
+      {{ heatmap_table(landscape, email_safe=True, patent_lookup=patent_lookup|default({})) }}
+    </td>
+  </tr>
+</table>
+
+<!-- Strategic Insights -->
+{% if insights %}
+<table width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr>
+    <td style="padding:0 0 16px 0;">
+      <div style="font-size:12px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;">Strategic Insights</div>
+      <table width="100%" cellpadding="0" cellspacing="0" border="0">
+        {% for insight in insights %}
+        <tr>
+          <td width="24" valign="top" style="padding:0 0 10px 0;">
+            <span style="font-size:16px;color:#2563eb;line-height:1.5;">•</span>
+          </td>
+          <td valign="top" style="padding:0 0 10px 0;font-size:15px;color:#334155;line-height:1.6;" class="email-text-secondary">
+            {{ insight }}
+          </td>
+        </tr>
+        {% endfor %}
+      </table>
+    </td>
+  </tr>
+</table>
+{% endif %}

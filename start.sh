@@ -3,8 +3,18 @@ set -e
 
 echo "=========================================="
 echo "  BIOSIM RAILWAY STARTUP"
+echo "  Service: $RAILWAY_SERVICE_NAME"
 echo "=========================================="
 
+# ─── BRANCH: INGEST SERVICE ───
+if [ "$RAILWAY_SERVICE_NAME" = "biosim-ingest" ]; then
+    echo "🔄 Running scheduled ingestion..."
+    python scripts/ingest_new_molecules.py
+    echo "✅ Ingestion complete. Exiting."
+    exit 0
+fi
+
+# ─── BRANCH: API SERVICE (existing logic) ───
 # ─── VALIDATE ENV VARS ───
 if [ -z "$DATABASE_URL" ]; then
     echo "❌ FATAL: DATABASE_URL is not set. Add your Neon connection string in Railway Variables."

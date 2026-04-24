@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from typing import Any
 from uuid import UUID
 
@@ -13,10 +14,31 @@ from app.core.exceptions import NotFoundException
 from app.db.session import get_db
 from app.models.event import Event
 from app.schemas.event import EventRead
+from app.utils.dates import format_datetime
+from app.utils.threat_interpretation import interpret_threat_score
 
 router = APIRouter()
 
+
+def _format_ctgov_phases(phases: list[str] | None) -> str | None:
+    """Format CT.gov designModule.phases array into human-readable string."""
+    if not phases:
+        return None
+    display_map = {
+        "PHASE1": "Phase 1",
+        "PHASE2": "Phase 2",
+        "PHASE3": "Phase 3",
+        "PHASE4": "Phase 4",
+        "PHASE1/PHASE2": "Phase 1/2",
+        "PHASE2/PHASE3": "Phase 2/3",
+    }
+    formatted = []
+    for phase in phases:
+        formatted.append(display_map.get(phase, phase.replace("PHASE", "Phase ")))
+    return "/".join(formatted)
+
 templates = Jinja2Templates(directory="app/templates")
+templates.env.filters["format_datetime"] = format_datetime
 
 
 @router.get("", response_model=list[EventRead])
@@ -134,24 +156,48 @@ async def get_provenance_data(db: AsyncSession, event_id: UUID) -> dict[str, Any
     if sponsor_prov:
         sponsor = sponsor_prov.normalized_value or sponsor_prov.raw_value
 
+    raw_nct = source_doc.external_id if source_doc else None
+    nct_id = None
+    if raw_nct and re.match(r'^NCT\d{8}$', raw_nct):
+        nct_id = raw_nct
+
+    # Extract phase from CT.gov v2 API raw payload
+    ct_phases = None
+    if source_doc and source_doc.raw_payload:
+        protocol = source_doc.raw_payload.get("protocolSection", {})
+        design = protocol.get("designModule", {})
+        ct_phases = design.get("phases")
+    raw_phase = _format_ctgov_phases(ct_phases) if ct_phases else None
+    fallback_phase = (
+        event.event_subtype
+        if event.event_subtype and event.event_subtype.lower() != "not specified"
+        else None
+    )
+    phase = raw_phase or fallback_phase
+
+    threat_label, threat_color, threat_explanation = interpret_threat_score(event)
+
     return {
-        "nct_id": source_doc.external_id if source_doc else None,
+        "nct_id": nct_id,
         "title": source_doc.title if source_doc else None,
         "sponsor": sponsor,
-        "phase": event.event_subtype,
+        "phase": phase,
         "status": event.verification_status,
         "first_posted": (
-            source_doc.published_at.isoformat()
+            source_doc.published_at
             if source_doc and source_doc.published_at
-            else (event.created_at.isoformat() if event.created_at else None)
+            else event.created_at
         ),
-        "last_updated": event.updated_at.isoformat() if event.updated_at else None,
+        "last_updated": event.updated_at,
         "threat_score": event.threat_score or 0,
+        "threat_label": threat_label,
+        "threat_color": threat_color,
+        "threat_explanation": threat_explanation,
         "summary": event.summary,
         "ingested_at": (
-            source_doc.fetched_at.isoformat()
+            source_doc.fetched_at
             if source_doc and source_doc.fetched_at
-            else (event.created_at.isoformat() if event.created_at else None)
+            else event.created_at
         ),
     }
 
@@ -182,6 +228,9 @@ async def get_provenance_view(
             "first_posted": data.get("first_posted"),
             "last_updated": data.get("last_updated"),
             "threat_score": data.get("threat_score", 0),
+            "threat_label": data.get("threat_label"),
+            "threat_color": data.get("threat_color"),
+            "threat_explanation": data.get("threat_explanation"),
             "summary": data.get("summary"),
             "ingested_at": data.get("ingested_at"),
         },

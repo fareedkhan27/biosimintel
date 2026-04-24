@@ -18,7 +18,7 @@ engine = create_async_engine(
     url,
     echo=settings.DEBUG,
     future=True,
-    connect_args={"ssl": True},
+    connect_args={"ssl": True, "statement_cache_size": 0},
     pool_pre_ping=True,
     pool_size=5,
     max_overflow=10,

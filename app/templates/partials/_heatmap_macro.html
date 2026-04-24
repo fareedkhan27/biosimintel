@@ -1,0 +1,61 @@
+{#
+  Heatmap table macro — reusable across full-page view, email fragment, and briefing.
+  All CSS is inline to support email clients.
+#}
+
+{% macro heatmap_table(landscape, email_safe=False, patent_lookup={}) %}
+{% set max_width = "100%" %}
+{% set font_family = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" %}
+
+<table width="{{ max_width }}" cellpadding="0" cellspacing="0" border="0" style="font-family:{{ font_family }};border-collapse:separate;border-spacing:4px;">
+  <!-- Header row -->
+  <tr>
+    <th style="padding:10px 8px;text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:0.6px;color:#64748b;font-weight:600;border-bottom:2px solid #e2e8f0;white-space:nowrap;">Indication</th>
+    {% for comp in landscape.competitors %}
+    <th style="padding:10px 6px;text-align:center;font-size:11px;font-weight:600;color:#475569;border-bottom:2px solid #e2e8f0;min-width:70px;white-space:nowrap;">
+      {{ comp.name[:12] }}{% if comp.name|length > 12 %}…{% endif %}
+      <span style="display:block;font-size:9px;font-weight:400;color:#94a3b8;margin-top:2px;">{{ comp.focus_type }}</span>
+    </th>
+    {% endfor %}
+  </tr>
+
+  <!-- Data rows -->
+  {% for indication in landscape.indications %}
+  {% set pc = patent_lookup.get(indication, None) %}
+  <tr>
+    <td class="indication-label" style="padding:8px 8px;text-align:left;font-size:13px;font-weight:600;color:#0f172a;border-right:1px solid #e2e8f0;white-space:nowrap;">
+      {{ indication }}
+      {% if pc and pc.days_to_expiry <= 730 %}
+      <span style="font-size:12px;margin-left:2px;" title="Patent {{ pc.patent_number or 'N/A' }} expires {{ pc.expiry_date }} ({{ pc.days_to_expiry }} days)">⏳</span>
+      {% endif %}
+    </td>
+    {% for cell in landscape.matrix[loop.index0] %}
+    {% if cell is none %}
+    <td class="heatmap-cell" style="padding:8px 6px;text-align:center;">
+      <div style="display:inline-block;width:52px;height:36px;line-height:36px;background:#f8fafc;border-radius:4px;font-size:11px;color:#94a3b8;">—</div>
+    </td>
+    {% else %}
+    {% set hs = cell.heat_score %}
+    {% if hs == 0 %}
+      {% set bg = "#f8fafc" %}{% set fg = "#94a3b8" %}
+    {% elif hs <= 25 %}
+      {% set bg = "#dcfce7" %}{% set fg = "#166534" %}
+    {% elif hs <= 50 %}
+      {% set bg = "#fef9c3" %}{% set fg = "#854d0e" %}
+    {% elif hs <= 75 %}
+      {% set bg = "#fee2e2" %}{% set fg = "#991b1b" %}
+    {% else %}
+      {% set bg = "#991b1b" %}{% set fg = "#ffffff" %}
+    {% endif %}
+    <td class="heatmap-cell" style="padding:8px 6px;text-align:center;">
+      <div style="display:inline-block;width:52px;padding:6px 0;background-color:{{ bg }};border-radius:4px;font-size:12px;font-weight:700;color:{{ fg }};line-height:1.2;"
+           title="Avg Threat: {{ cell.avg_threat_score }} | Events: {{ cell.event_count }} | Latest: {{ cell.latest_stage | format_stage }} | Updated: {{ cell.latest_event_date.strftime('%Y-%m-%d') }}">
+        {{ cell.stage_abbreviation }}<span style="font-size:9px;font-weight:400;"><sub>{{ cell.event_count }}</sub></span>
+      </div>
+    </td>
+    {% endif %}
+    {% endfor %}
+  </tr>
+  {% endfor %}
+</table>
+{% endmacro %}

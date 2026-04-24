@@ -1,0 +1,33 @@
+<!-- Intelligence Alerts Email Fragment -->
+{% if alerts %}
+<table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:32px;">
+  <tr>
+    <td style="padding:0 0 12px 0;">
+      <div style="font-size:13px;text-transform:uppercase;letter-spacing:1.5px;color:#475569;font-weight:700;margin-bottom:20px;">🚨 Competitive Intelligence Alerts</div>
+    </td>
+  </tr>
+  {% for alert in alerts %}
+  {% if alert.severity == 'critical' %}
+    {% set border_color = '#dc2626' %}{% set bg_color = '#fef2f2' %}{% set text_color = '#7f1d1d' %}
+  {% elif alert.severity == 'high' %}
+    {% set border_color = '#ea580c' %}{% set bg_color = '#fff7ed' %}{% set text_color = '#9a3412' %}
+  {% elif alert.severity == 'medium' %}
+    {% set border_color = '#ca8a04' %}{% set bg_color = '#fefce8' %}{% set text_color = '#854d0e' %}
+  {% else %}
+    {% set border_color = '#9ca3af' %}{% set bg_color = '#f9fafb' %}{% set text_color = '#4b5563' %}
+  {% endif %}
+  <tr>
+    <td style="padding:0 0 12px 0;">
+      <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:{{ bg_color }};border-left:4px solid {{ border_color }};border-radius:6px;">
+        <tr>
+          <td style="padding:14px 18px;">
+            <div style="font-size:11px;font-weight:700;color:{{ text_color }};text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">{{ alert.alert_type.replace('_', ' ') }}</div>
+            <div style="font-size:15px;line-height:1.6;color:{{ text_color }}">{{ alert.description }}</div>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+  {% endfor %}
+</table>
+{% endif %}

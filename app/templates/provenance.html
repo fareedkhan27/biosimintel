@@ -36,7 +36,13 @@
             <div class="meta-grid">
                 <div class="meta-item">
                     <span class="label">NCT ID</span>
-                    <span class="value"><a href="https://clinicaltrials.gov/study/{{ nct_id }}" target="_blank">{{ nct_id }} ↗</a></span>
+                    <span class="value">
+                        {% if nct_id %}
+                            <a href="https://clinicaltrials.gov/study/{{ nct_id }}" target="_blank">{{ nct_id }} ↗</a>
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </span>
                 </div>
                 <div class="meta-item">
                     <span class="label">Sponsor</span>
@@ -44,7 +50,7 @@
                 </div>
                 <div class="meta-item">
                     <span class="label">Phase</span>
-                    <span class="value">{{ phase or "Not specified" }}</span>
+                    <span class="value">{{ phase or "Not disclosed" }}</span>
                 </div>
                 <div class="meta-item">
                     <span class="label">Status</span>
@@ -52,11 +58,11 @@
                 </div>
                 <div class="meta-item">
                     <span class="label">First Posted</span>
-                    <span class="value">{{ first_posted or "N/A" }}</span>
+                    <span class="value">{{ first_posted | format_datetime }}</span>
                 </div>
                 <div class="meta-item">
                     <span class="label">Last Updated</span>
-                    <span class="value">{{ last_updated or "N/A" }}</span>
+                    <span class="value">{{ last_updated | format_datetime }}</span>
                 </div>
             </div>
         </div>
@@ -64,7 +70,8 @@
         <div class="card">
             <div class="meta-item">
                 <span class="label">Threat Score</span>
-                <span class="value">{{ threat_score }}/100</span>
+                <span class="value" style="color: {{ threat_color }};"><strong>{{ threat_label }}</strong> — {{ threat_score }}/100</span>
+                <p style="margin-top: 0.25rem; color: var(--muted); font-size: 0.9rem;">{{ threat_explanation }}</p>
                 <div class="threat-bar"><div class="threat-fill" style="width: {{ threat_score }}%"></div></div>
             </div>
             <div class="meta-item" style="margin-top: 1rem;">
@@ -80,7 +87,7 @@
             </div>
             <div class="meta-item" style="margin-top: 0.75rem;">
                 <span class="label">Ingested At</span>
-                <span class="value">{{ ingested_at or "N/A" }}</span>
+                <span class="value">{{ ingested_at | format_datetime }}</span>
             </div>
         </div>
 

@@ -186,9 +186,22 @@ class ClinicalTrialsService:
         db.add(source_doc)
         await db.flush()
 
-        # Extract indication
-        indication = self._extract_indication(raw_text)
-        indication_priority = molecule.indications.get(indication, {}).get("priority", "LOW") if indication else "LOW"
+        # Extract indication from structured conditions first, then fall back to NLP
+        conditions_module = protocol.get("conditionsModule", {})
+        conditions = conditions_module.get("conditions", []) or []
+        official_title = identification.get("officialTitle", "")
+
+        indication = self._extract_indication(raw_text, conditions, official_title or title)
+        indication_priority = (
+            molecule.indications.get(indication, {}).get("priority", "LOW")
+            if indication
+            else "LOW"
+        )
+        is_pivotal = (
+            molecule.indications.get(indication, {}).get("pivotal", False)
+            if indication
+            else False
+        )
 
         # Extract phase
         phase = (status_module.get("phase", "") or "").lower()
@@ -204,6 +217,7 @@ class ClinicalTrialsService:
             development_stage=development_stage,
             indication=indication,
             indication_priority=indication_priority,
+            is_pivotal_indication=is_pivotal,
             country=protocol.get("contactsLocationsModule", {}).get("locations", [{}])[0].get("country") if protocol.get("contactsLocationsModule", {}).get("locations") else None,
             summary=f"Clinical trial {nct_id}: {title}",
             evidence_excerpt=raw_text[:1000],
@@ -275,10 +289,34 @@ class ClinicalTrialsService:
         source_doc.processing_status = "completed"  # type: ignore[assignment]
         return True
 
-    def _extract_indication(self, text: str) -> str | None:
-        for name, pattern in INDICATION_PATTERNS.items():
-            if pattern.search(text):
-                return name
+    def _extract_indication(
+        self,
+        text: str,
+        conditions: list[str] | None = None,
+        title: str = "",
+    ) -> str | None:
+        """Extract indication from CT.gov structured data or free text.
+
+        Priority:
+        1. Structured ``conditions`` array from CT.gov API.
+        2. Regex patterns over ``title + text`` (OfficialTitle / BriefTitle + summary).
+        """
+        # 1. Structured conditions array from CT.gov
+        if conditions:
+            for condition in conditions:
+                for name, pattern in INDICATION_PATTERNS.items():
+                    if pattern.search(condition):
+                        return name
+            # No pattern match — return first condition as best-effort fallback
+            return conditions[0]
+
+        # 2. NLP fallback over title + text
+        full_text = f"{title} {text}".strip()
+        if full_text:
+            for name, pattern in INDICATION_PATTERNS.items():
+                if pattern.search(full_text):
+                    return name
+
         return None
 
     async def close(self) -> None:

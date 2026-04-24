@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, EmailStr, Field
 
 from app.schemas.event import EventRead
 
@@ -52,6 +52,14 @@ class EmailBriefingRequest(BaseModel):
     department: str = "market_access"
     format: str = "html"  # "html" or "json"
     since_days: int = 7
+    bypass_preferences: bool = False
+
+
+class BriefingTriggerRequest(BaseModel):
+    molecule_id: UUID
+    segments: list[str] = Field(default_factory=lambda: ["market_access"])
+    since_days: int = 30
+    recipient: EmailStr = "na-team@biosimintel.com"
 
 
 class EmailBriefingResponse(BaseModel):

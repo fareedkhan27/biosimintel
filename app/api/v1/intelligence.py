@@ -1,12 +1,15 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime
+from typing import Any
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.core.auth import verify_api_key
 from app.core.exceptions import NotFoundException
 from app.db.session import get_db
 from app.models.event import Event
@@ -17,10 +20,12 @@ from app.schemas.intelligence import (
     AskResponse,
     BriefingRequest,
     BriefingResponse,
+    BriefingTriggerRequest,
     EmailBriefingRequest,
     EmailBriefingResponse,
     IntelligenceSummary,
 )
+from app.schemas.llm_insights import InsightResult
 
 router = APIRouter()
 
@@ -127,6 +132,17 @@ async def ask_question(
     return await engine.answer(payload, db)
 
 
+@router.get("/narrative", response_model=InsightResult)
+async def get_executive_narrative(
+    molecule_id: UUID,
+    force_refresh: bool = False,
+    db: AsyncSession = Depends(get_db),
+) -> InsightResult:
+    """Generate AI-powered executive narrative for a molecule."""
+    from app.services.llm_insights import generate_executive_narrative
+    return await generate_executive_narrative(molecule_id, db, force_refresh=force_refresh)
+
+
 @router.post("/briefing/email", response_model=EmailBriefingResponse)
 async def generate_email_briefing(
     payload: EmailBriefingRequest,
@@ -134,5 +150,124 @@ async def generate_email_briefing(
 ) -> EmailBriefingResponse:
     """Generate email-ready department briefing (HTML or JSON)."""
     from app.services.intelligence_service import IntelligenceService
+
+    molecule_result = await db.execute(select(Molecule).where(Molecule.id == payload.molecule_id))
+    molecule = molecule_result.scalar_one_or_none()
+    if molecule is None:
+        raise NotFoundException("Molecule")
+
+    # For auto-generated briefings (not on-demand), respect preferences
+    if not payload.bypass_preferences:
+        if molecule.briefing_mode == "silent":
+            raise HTTPException(status_code=403, detail="Molecule is in silent mode")
+        if molecule.briefing_mode == "on_demand":
+            raise HTTPException(
+                status_code=403,
+                detail="Molecule is in on-demand mode — use /briefing/trigger",
+            )
+        if molecule.briefing_mode == "alert_only":
+            # This shouldn't be hit by the weekly workflow, but guard anyway
+            raise HTTPException(status_code=403, detail="Molecule is in alert-only mode")
+
     service = IntelligenceService()
-    return await service.generate_email_briefing(payload, db)
+    response = await service.generate_email_briefing(payload, db)
+
+    # Update last_briefing_sent_at for successful auto-generated sends
+    if not payload.bypass_preferences:
+        molecule.last_briefing_sent_at = datetime.now(UTC)  # type: ignore[assignment]
+        await db.commit()
+
+    return response
+
+
+@router.post("/briefing/trigger", response_model=EmailBriefingResponse)
+async def trigger_on_demand_briefing(
+    request: BriefingTriggerRequest,
+    db: AsyncSession = Depends(get_db),
+    _api_key: str = Depends(verify_api_key),
+) -> EmailBriefingResponse:
+    """
+    Trigger a briefing email for any molecule regardless of its briefing_mode.
+    This bypasses the preference check — it's manual/on-demand.
+    """
+    from app.services.intelligence_service import IntelligenceService
+
+    molecule_result = await db.execute(select(Molecule).where(Molecule.id == request.molecule_id))
+    molecule = molecule_result.scalar_one_or_none()
+    if molecule is None:
+        raise NotFoundException("Molecule")
+
+    # Map segments to department (use first segment)
+    department = request.segments[0] if request.segments else "market_access"
+
+    payload = EmailBriefingRequest(
+        molecule_id=request.molecule_id,
+        department=department,
+        format="html",
+        since_days=request.since_days,
+        bypass_preferences=True,
+    )
+
+    service = IntelligenceService()
+    response = await service.generate_email_briefing(payload, db)
+
+    # Override recipient if provided
+    response.recipient = request.recipient
+
+    # Update last_briefing_sent_at
+    molecule.last_briefing_sent_at = datetime.now(UTC)  # type: ignore[assignment]
+    await db.commit()
+
+    return response
+
+
+@router.get("/alert-check")
+async def check_alert_threshold(
+    molecule_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    _api_key: str = Depends(verify_api_key),
+) -> dict[str, Any]:
+    """
+    For molecules in 'alert_only' mode, check if top threat score >= threshold.
+    Returns: {"should_alert": true/false, "top_score": int, "threshold": int}
+    """
+    molecule_result = await db.execute(select(Molecule).where(Molecule.id == molecule_id))
+    molecule = molecule_result.scalar_one_or_none()
+    if molecule is None:
+        raise NotFoundException("Molecule")
+
+    if molecule.briefing_mode != "alert_only" or not molecule.is_monitored:
+        return {
+            "should_alert": False,
+            "top_score": 0,
+            "threshold": molecule.alert_threshold,
+            "reason": "Molecule is not in alert_only mode or is not monitored",
+        }
+
+    # Run the same query as /intelligence/top-threats with limit=1
+    events_result = await db.execute(
+        select(Event)
+        .options(selectinload(Event.competitor))
+        .where(Event.molecule_id == molecule_id)
+        .where(Event.verification_status == "verified")
+        .order_by(Event.threat_score.desc())
+        .limit(1)
+    )
+    top_event = events_result.scalar_one_or_none()
+
+    if top_event is None or top_event.threat_score is None:
+        return {
+            "should_alert": False,
+            "top_score": 0,
+            "threshold": molecule.alert_threshold,
+            "reason": "No verified events with threat scores found",
+        }
+
+    should_alert = top_event.threat_score >= molecule.alert_threshold
+
+    return {
+        "should_alert": should_alert,
+        "top_score": top_event.threat_score,
+        "threshold": molecule.alert_threshold,
+        "event": EventRead.model_validate(top_event) if should_alert else None,
+    }

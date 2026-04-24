@@ -94,6 +94,10 @@ async def test_email_briefing_html_format(
     assert "Weekly Briefing: email_test_mol" in data["subject"]
     assert data["region"] == "India"
 
+    # Threat interpretation fields should be present in HTML
+    assert "Moderate" in data["html"] or "Critical" in data["html"] or "High" in data["html"]
+    assert "Threat Level Guide" in data["html"]
+
 
 @pytest.mark.asyncio
 async def test_email_briefing_json_format(
@@ -168,6 +172,13 @@ async def test_email_briefing_json_format(
     assert data["json_payload"]["events"][0]["competitor_name"] == "JsonRival"
     assert data["event_count"] == 1
     assert data["region"] == "United States"
+
+    # Threat interpretation fields in JSON payload
+    event = data["json_payload"]["events"][0]
+    assert "threat_label" in event
+    assert "threat_color" in event
+    assert "threat_explanation" in event
+    assert "threat_guide" in data["json_payload"]
 
 
 @pytest.mark.asyncio
