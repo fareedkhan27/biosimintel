@@ -4,6 +4,7 @@ Weekly briefing sender. Runs via Railway cron (biosim-emailer-weekly service).
 Fetches HTML from API, then sends via Resend SMTP.
 """
 import asyncio
+import json
 import os
 
 import httpx
@@ -44,7 +45,13 @@ async def send_resend_email(
         headers={"Authorization": f"Bearer {api_key}"},
         json=payload,
     )
-    r.raise_for_status()
+    try:
+        r.raise_for_status()
+    except httpx.HTTPStatusError as e:
+        print(f"RESEND ERROR STATUS: {e.response.status_code}")
+        print(f"RESEND ERROR BODY: {e.response.text}")
+        print(f"RESEND REQUEST PAYLOAD: {json.dumps(payload, indent=2)}")
+        raise
     print(f"  Resend ID: {r.json().get('id', 'N/A')}")
 
 
