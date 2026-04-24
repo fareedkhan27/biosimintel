@@ -1,85 +1,99 @@
-"""Send weekly digest briefings for molecules in weekly_digest mode."""
-from __future__ import annotations
-
+#!/usr/bin/env python3
+"""
+Weekly briefing sender. Runs via Railway cron (biosim-emailer-weekly service).
+Fetches HTML from API, then sends via Resend SMTP.
+"""
 import asyncio
 import os
-import sys
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 
 import httpx
 
-API_BASE_URL = os.getenv("API_BASE_URL", "https://api.biosimintel.com").rstrip("/")
-API_KEY = os.getenv("BIOSIM_API_KEY", "")
-BRIEFING_RECIPIENT = os.getenv("BRIEFING_RECIPIENT", "na-team@biosimintel.com")
-BRIEFING_CC = os.getenv("BRIEFING_CC", "")
+API_BASE = os.getenv("API_BASE_URL", "https://api.biosimintel.com")
+API_KEY = os.getenv("BIOSIM_API_KEY")
+RECIPIENT = os.getenv("BRIEFING_RECIPIENT", "na-team@biosimintel.com")
+CC = os.getenv("BRIEFING_CC", "")
 
-HEADERS: dict[str, str] = {"Content-Type": "application/json"}
-if API_KEY:
-    HEADERS["Authorization"] = f"Bearer {API_KEY}"
+SMTP_HOST = os.getenv("SMTP_HOST", "smtp.resend.com")
+SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
+SMTP_USER = os.getenv("SMTP_USER", "resend")
+SMTP_PASS = os.getenv("SMTP_PASS") or os.getenv("RESEND_API_KEY", "")
+EMAIL_FROM = os.getenv("EMAIL_FROM", "intelligence@biosimintel.com")
 
-TIMEOUT = httpx.Timeout(60.0, connect=10.0)
+
+def send_smtp_email(subject: str, html_body: str, to: str, cc: str = "") -> None:
+    """Send HTML email via SMTP."""
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = subject
+    msg["From"] = EMAIL_FROM
+    msg["To"] = to
+    if cc:
+        msg["Cc"] = cc
+
+    msg.attach(MIMEText(html_body, "html"))
+
+    with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
+        server.starttls()
+        server.login(SMTP_USER, SMTP_PASS)
+        server.send_message(msg)
 
 
-async def send_weekly_briefings() -> int:
-    """Fetch weekly_digest molecules and send briefing emails."""
-    exit_code = 0
-    async with httpx.AsyncClient(timeout=TIMEOUT, headers=HEADERS) as client:
-        try:
-            resp = await client.get(
-                f"{API_BASE_URL}/api/v1/molecules?briefing_mode=weekly_digest"
-            )
-            resp.raise_for_status()
-        except httpx.HTTPStatusError as exc:
-            print(f"Failed to fetch molecules: {exc.response.status_code} {exc.response.text}")
-            return 1
-        except httpx.RequestError as exc:
-            print(f"Failed to fetch molecules: {exc}")
-            return 1
+async def main() -> None:
+    if not API_KEY:
+        print("BIOSIM_API_KEY not set")
+        raise SystemExit(1)
+    if not SMTP_PASS:
+        print("SMTP_PASS or RESEND_API_KEY not set")
+        raise SystemExit(1)
 
-        molecules = resp.json()
+    async with httpx.AsyncClient() as client:
+        # 1. Get weekly_digest molecules
+        r = await client.get(
+            f"{API_BASE}/api/v1/molecules?briefing_mode=weekly_digest",
+            headers={"Authorization": f"Bearer {API_KEY}"},
+        )
+        r.raise_for_status()
+        molecules = r.json()
+
         if not molecules:
             print("No molecules in weekly_digest mode. Skipping.")
-            return 0
+            return
 
-        sent_names: list[str] = []
-        for molecule in molecules:
-            molecule_id = molecule.get("id")
-            molecule_name = molecule.get("molecule_name", "unknown")
-            if not molecule_id:
-                print(f"Skipping molecule with missing id: {molecule_name}")
-                continue
-
-            payload = {
-                "molecule_id": molecule_id,
-                "segments": ["market_access"],
-                "since_days": 7,
-            }
+        sent_count = 0
+        for m in molecules:
+            name = m.get("molecule_name", "Unknown")
+            mid = m["id"]
             try:
-                post_resp = await client.post(
-                    f"{API_BASE_URL}/api/v1/intelligence/briefing/email",
-                    json=payload,
+                # 2. Generate briefing HTML
+                br = await client.post(
+                    f"{API_BASE}/api/v1/intelligence/briefing/email",
+                    headers={
+                        "Authorization": f"Bearer {API_KEY}",
+                        "Content-Type": "application/json",
+                    },
+                    json={
+                        "molecule_id": str(mid),
+                        "segments": ["market_access"],
+                        "since_days": 7,
+                    },
                 )
-                post_resp.raise_for_status()
-                sent_names.append(molecule_name)
-            except httpx.HTTPStatusError as exc:
-                print(
-                    f"ERROR sending weekly briefing for {molecule_name}: "
-                    f"{exc.response.status_code} {exc.response.text}"
-                )
-                exit_code = 1
-                continue
-            except httpx.RequestError as exc:
-                print(f"ERROR sending weekly briefing for {molecule_name}: {exc}")
-                exit_code = 1
+                br.raise_for_status()
+                html_content = br.text
+
+                # 3. SEND THE EMAIL via SMTP
+                subject = f"[Biosim] Weekly Briefing: {name}"
+                send_smtp_email(subject, html_content, RECIPIENT, CC)
+                print(f"Email sent for {name}")
+                sent_count += 1
+
+            except Exception as e:
+                print(f"Failed for {name}: {e}")
                 continue
 
-        if sent_names:
-            names_str = ", ".join(sent_names)
-            print(f"Sent {len(sent_names)} weekly briefing(s): {names_str}")
-        else:
-            print("No weekly briefings were sent.")
-
-    return exit_code
+        print(f"Sent {sent_count} weekly briefing(s)")
 
 
 if __name__ == "__main__":
-    sys.exit(asyncio.run(send_weekly_briefings()))
+    asyncio.run(main())

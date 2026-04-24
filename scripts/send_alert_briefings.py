@@ -1,110 +1,112 @@
-"""Send daily alert briefings for molecules in alert_only mode."""
-from __future__ import annotations
-
+#!/usr/bin/env python3
+"""
+Daily alert sender. Runs via Railway cron (biosim-emailer-alerts service).
+Checks alert thresholds, fetches HTML from API, then sends via Resend SMTP.
+"""
 import asyncio
 import os
-import sys
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 
 import httpx
 
-API_BASE_URL = os.getenv("API_BASE_URL", "https://api.biosimintel.com").rstrip("/")
-API_KEY = os.getenv("BIOSIM_API_KEY", "")
-BRIEFING_RECIPIENT = os.getenv("BRIEFING_RECIPIENT", "na-team@biosimintel.com")
-BRIEFING_CC = os.getenv("BRIEFING_CC", "")
+API_BASE = os.getenv("API_BASE_URL", "https://api.biosimintel.com")
+API_KEY = os.getenv("BIOSIM_API_KEY")
+RECIPIENT = os.getenv("BRIEFING_RECIPIENT", "na-team@biosimintel.com")
+CC = os.getenv("BRIEFING_CC", "")
 
-HEADERS: dict[str, str] = {"Content-Type": "application/json"}
-if API_KEY:
-    HEADERS["Authorization"] = f"Bearer {API_KEY}"
+SMTP_HOST = os.getenv("SMTP_HOST", "smtp.resend.com")
+SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
+SMTP_USER = os.getenv("SMTP_USER", "resend")
+SMTP_PASS = os.getenv("SMTP_PASS") or os.getenv("RESEND_API_KEY", "")
+EMAIL_FROM = os.getenv("EMAIL_FROM", "intelligence@biosimintel.com")
 
-TIMEOUT = httpx.Timeout(60.0, connect=10.0)
+
+def send_smtp_email(subject: str, html_body: str, to: str, cc: str = "") -> None:
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = subject
+    msg["From"] = EMAIL_FROM
+    msg["To"] = to
+    if cc:
+        msg["Cc"] = cc
+    msg.attach(MIMEText(html_body, "html"))
+
+    with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
+        server.starttls()
+        server.login(SMTP_USER, SMTP_PASS)
+        server.send_message(msg)
 
 
-async def send_alert_briefings() -> int:
-    """Fetch alert_only molecules, check thresholds, and send alert emails."""
-    exit_code = 0
-    async with httpx.AsyncClient(timeout=TIMEOUT, headers=HEADERS) as client:
-        try:
-            resp = await client.get(
-                f"{API_BASE_URL}/api/v1/molecules?briefing_mode=alert_only"
-            )
-            resp.raise_for_status()
-        except httpx.HTTPStatusError as exc:
-            print(f"Failed to fetch molecules: {exc.response.status_code} {exc.response.text}")
-            return 1
-        except httpx.RequestError as exc:
-            print(f"Failed to fetch molecules: {exc}")
-            return 1
+async def main() -> None:
+    if not API_KEY:
+        print("BIOSIM_API_KEY not set")
+        raise SystemExit(1)
+    if not SMTP_PASS:
+        print("SMTP_PASS or RESEND_API_KEY not set")
+        raise SystemExit(1)
 
-        molecules = resp.json()
+    async with httpx.AsyncClient() as client:
+        r = await client.get(
+            f"{API_BASE}/api/v1/molecules?briefing_mode=alert_only",
+            headers={"Authorization": f"Bearer {API_KEY}"},
+        )
+        r.raise_for_status()
+        molecules = r.json()
+
         if not molecules:
             print("No molecules in alert_only mode. Skipping.")
-            return 0
+            return
 
-        for molecule in molecules:
-            molecule_id = molecule.get("id")
-            molecule_name = molecule.get("molecule_name", "unknown")
-            if not molecule_id:
-                print(f"Skipping molecule with missing id: {molecule_name}")
-                continue
-
+        alert_count = 0
+        for m in molecules:
+            name = m.get("molecule_name", "Unknown")
+            mid = m["id"]
             try:
-                check_resp = await client.get(
-                    f"{API_BASE_URL}/api/v1/intelligence/alert-check?molecule_id={molecule_id}"
+                # Check threshold
+                ar = await client.get(
+                    f"{API_BASE}/api/v1/intelligence/alert-check?molecule_id={mid}",
+                    headers={"Authorization": f"Bearer {API_KEY}"},
                 )
-                check_resp.raise_for_status()
-            except httpx.HTTPStatusError as exc:
-                print(
-                    f"ERROR checking alert for {molecule_name}: "
-                    f"{exc.response.status_code} {exc.response.text}"
+                ar.raise_for_status()
+                alert_data = ar.json()
+
+                if not alert_data.get("should_alert"):
+                    score = alert_data.get("top_score", "N/A")
+                    threshold = alert_data.get("threshold", "N/A")
+                    print(f"No alert for {name}: score {score} < threshold {threshold}")
+                    continue
+
+                # Fetch HTML
+                top_score = alert_data.get("top_score", "N/A")
+                br = await client.post(
+                    f"{API_BASE}/api/v1/intelligence/briefing/email",
+                    headers={
+                        "Authorization": f"Bearer {API_KEY}",
+                        "Content-Type": "application/json",
+                    },
+                    json={
+                        "molecule_id": str(mid),
+                        "segments": ["market_access"],
+                        "since_days": 7,
+                    },
                 )
-                exit_code = 1
-                continue
-            except httpx.RequestError as exc:
-                print(f"ERROR checking alert for {molecule_name}: {exc}")
-                exit_code = 1
+                br.raise_for_status()
+                html_content = br.text
+
+                # SEND ALERT EMAIL
+                subject = f"[Biosim] ALERT: {name} -- Threat Score {top_score}"
+                send_smtp_email(subject, html_content, RECIPIENT, CC)
+                print(f"ALERT sent for {name}: top score {top_score} >= threshold {alert_data.get('threshold')}")
+                alert_count += 1
+
+            except Exception as e:
+                print(f"Failed for {name}: {e}")
                 continue
 
-            check_data = check_resp.json()
-            should_alert = check_data.get("should_alert", False)
-            top_score = check_data.get("top_score", 0)
-            threshold = check_data.get("threshold", 0)
-
-            if not should_alert:
-                print(
-                    f"No alert for {molecule_name}: "
-                    f"score {top_score} < threshold {threshold}"
-                )
-                continue
-
-            payload = {
-                "molecule_id": molecule_id,
-                "segments": ["market_access"],
-                "since_days": 7,
-            }
-            try:
-                post_resp = await client.post(
-                    f"{API_BASE_URL}/api/v1/intelligence/briefing/email",
-                    json=payload,
-                )
-                post_resp.raise_for_status()
-                print(
-                    f"ALERT sent for {molecule_name}: "
-                    f"top score {top_score} >= threshold {threshold}"
-                )
-            except httpx.HTTPStatusError as exc:
-                print(
-                    f"ERROR sending alert briefing for {molecule_name}: "
-                    f"{exc.response.status_code} {exc.response.text}"
-                )
-                exit_code = 1
-                continue
-            except httpx.RequestError as exc:
-                print(f"ERROR sending alert briefing for {molecule_name}: {exc}")
-                exit_code = 1
-                continue
-
-    return exit_code
+        if alert_count == 0:
+            print("No alerts triggered today.")
 
 
 if __name__ == "__main__":
-    sys.exit(asyncio.run(send_alert_briefings()))
+    asyncio.run(main())
