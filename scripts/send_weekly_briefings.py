@@ -10,11 +10,11 @@ import httpx
 
 API_BASE = os.getenv("API_BASE_URL", "https://api.biosimintel.com")
 API_KEY = os.getenv("BIOSIM_API_KEY")
-RECIPIENT = os.getenv("BRIEFING_RECIPIENT", "na-team@biosimintel.com")
-CC = os.getenv("BRIEFING_CC", "")
+RECIPIENT = (os.getenv("BRIEFING_RECIPIENT") or "na-team@biosimintel.com").strip()
+CC = (os.getenv("BRIEFING_CC") or "").strip()
 
 SMTP_PASS = os.getenv("SMTP_PASS") or os.getenv("RESEND_API_KEY", "")
-EMAIL_FROM = os.getenv("EMAIL_FROM", "intelligence@biosimintel.com")
+EMAIL_FROM = (os.getenv("EMAIL_FROM") or "intelligence@biosimintel.com").strip()
 
 
 async def send_resend_email(
@@ -24,7 +24,7 @@ async def send_resend_email(
     to: str,
     cc: str = ""
 ) -> None:
-    api_key = os.getenv("RESEND_API_KEY") or os.getenv("SMTP_PASS", "")
+    api_key = (os.getenv("RESEND_API_KEY") or os.getenv("SMTP_PASS") or "").strip()
     payload = {
         "from": EMAIL_FROM,
         "to": [to],
@@ -33,6 +33,11 @@ async def send_resend_email(
     }
     if cc:
         payload["cc"] = [cc] if "," not in cc else [c.strip() for c in cc.split(",")]
+
+    print(f"DEBUG: from='{EMAIL_FROM}'")
+    print(f"DEBUG: to='{to}'")
+    print(f"DEBUG: subject='{subject[:50]}...'")
+    print(f"DEBUG: html_length={len(html_body)}")
 
     r = await client.post(
         "https://api.resend.com/emails",
