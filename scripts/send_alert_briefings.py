@@ -46,7 +46,7 @@ async def main() -> None:
         print("SMTP_PASS or RESEND_API_KEY not set")
         raise SystemExit(1)
 
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=60.0) as client:
         r = await client.get(
             f"{API_BASE}/api/v1/molecules?briefing_mode=alert_only",
             headers={"Authorization": f"Bearer {API_KEY}"},
@@ -92,7 +92,8 @@ async def main() -> None:
                     },
                 )
                 br.raise_for_status()
-                html_content = br.text
+                response_data = br.json()
+                html_content = response_data["html"]
 
                 # SEND ALERT EMAIL
                 subject = f"[Biosim] ALERT: {name} -- Threat Score {top_score}"
@@ -101,7 +102,7 @@ async def main() -> None:
                 alert_count += 1
 
             except Exception as e:
-                print(f"Failed for {name}: {e}")
+                print(f"Failed for {name}: {type(e).__name__}: {e}")
                 continue
 
         if alert_count == 0:

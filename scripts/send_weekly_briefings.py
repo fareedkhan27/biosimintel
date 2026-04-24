@@ -48,7 +48,7 @@ async def main() -> None:
         print("SMTP_PASS or RESEND_API_KEY not set")
         raise SystemExit(1)
 
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=60.0) as client:
         # 1. Get weekly_digest molecules
         r = await client.get(
             f"{API_BASE}/api/v1/molecules?briefing_mode=weekly_digest",
@@ -80,7 +80,8 @@ async def main() -> None:
                     },
                 )
                 br.raise_for_status()
-                html_content = br.text
+                response_data = br.json()
+                html_content = response_data["html"]
 
                 # 3. SEND THE EMAIL via SMTP
                 subject = f"[Biosim] Weekly Briefing: {name}"
@@ -89,7 +90,7 @@ async def main() -> None:
                 sent_count += 1
 
             except Exception as e:
-                print(f"Failed for {name}: {e}")
+                print(f"Failed for {name}: {type(e).__name__}: {e}")
                 continue
 
         print(f"Sent {sent_count} weekly briefing(s)")
