@@ -5,9 +5,6 @@ Checks alert thresholds, fetches HTML from API, then sends via Resend SMTP.
 """
 import asyncio
 import os
-import smtplib
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
 
 import httpx
 
@@ -16,26 +13,34 @@ API_KEY = os.getenv("BIOSIM_API_KEY")
 RECIPIENT = os.getenv("BRIEFING_RECIPIENT", "na-team@biosimintel.com")
 CC = os.getenv("BRIEFING_CC", "")
 
-SMTP_HOST = os.getenv("SMTP_HOST", "smtp.resend.com")
-SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
-SMTP_USER = os.getenv("SMTP_USER", "resend")
 SMTP_PASS = os.getenv("SMTP_PASS") or os.getenv("RESEND_API_KEY", "")
 EMAIL_FROM = os.getenv("EMAIL_FROM", "intelligence@biosimintel.com")
 
 
-def send_smtp_email(subject: str, html_body: str, to: str, cc: str = "") -> None:
-    msg = MIMEMultipart("alternative")
-    msg["Subject"] = subject
-    msg["From"] = EMAIL_FROM
-    msg["To"] = to
+async def send_resend_email(
+    client: httpx.AsyncClient,
+    subject: str,
+    html_body: str,
+    to: str,
+    cc: str = ""
+) -> None:
+    api_key = os.getenv("RESEND_API_KEY") or os.getenv("SMTP_PASS", "")
+    payload = {
+        "from": EMAIL_FROM,
+        "to": [to],
+        "subject": subject,
+        "html": html_body,
+    }
     if cc:
-        msg["Cc"] = cc
-    msg.attach(MIMEText(html_body, "html"))
+        payload["cc"] = [cc] if "," not in cc else [c.strip() for c in cc.split(",")]
 
-    with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
-        server.starttls()
-        server.login(SMTP_USER, SMTP_PASS)
-        server.send_message(msg)
+    r = await client.post(
+        "https://api.resend.com/emails",
+        headers={"Authorization": f"Bearer {api_key}"},
+        json=payload,
+    )
+    r.raise_for_status()
+    print(f"  Resend ID: {r.json().get('id', 'N/A')}")
 
 
 async def main() -> None:
@@ -97,7 +102,7 @@ async def main() -> None:
 
                 # SEND ALERT EMAIL
                 subject = f"[Biosim] ALERT: {name} -- Threat Score {top_score}"
-                send_smtp_email(subject, html_content, RECIPIENT, CC)
+                await send_resend_email(client, subject, html_content, RECIPIENT, CC)
                 print(f"ALERT sent for {name}: top score {top_score} >= threshold {alert_data.get('threshold')}")
                 alert_count += 1
 
