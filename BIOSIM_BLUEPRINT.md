@@ -48,7 +48,7 @@ Biosim/
 │   │       ├── events.py          # Event listing, detail, provenance, interpretation
 │   │       ├── intelligence.py    # Briefings, Q&A, summaries, email dispatch
 │   │       ├── jobs.py            # Ingestion triggers + score recomputation
-│   │       └── webhooks.py        # n8n webhook endpoints
+│   │       └── webhooks.py        # Red-alert webhook endpoints
 │   │
 │   ├── core/
 │   │   ├── config.py              # Pydantic Settings (env vars, DB, Redis, SMTP, etc.)
@@ -129,9 +129,7 @@ Biosim/
 ├── docs/
 │   ├── api-contract/                # API endpoint documentation
 │   ├── deployment/                  # Docker & Railway deployment docs
-│   ├── n8n-workflows/
-│   │   └── ...                      # n8n workflow specification assets
-│   └── n8n-workflows.md             # n8n automation workflow specs
+│   ├── railway_cron_architecture.md  # Railway-native cron service docs
 │
 ├── scripts/
 │   ├── run_checks.py                # Lint (ruff) → type-check (mypy) → test (pytest)
@@ -330,7 +328,7 @@ All routes are mounted under `/api/v1/` via `app/api/v1/router.py`.
 | `events.py` | `/events` | `GET /?filters`, `GET /{id}`, `GET /{id}/provenance`, `POST /{id}/interpret` | Event listing, detail, provenance, AI interpretation |
 | `intelligence.py` | `/intelligence` | `GET /summary`, `GET /top-threats`, `GET /recent`, `POST /briefing`, `POST /ask`, `POST /briefing/email` | Intelligence aggregation, briefings, Q&A, email |
 | `jobs.py` | `/jobs` | `POST /ingest/clinicaltrials`, `/ingest/ema`, `/ingest/sec-edgar`, `/ingest/fda-purple-book`, `/ingest/press-release`, `POST /recompute-scores` | Manual ingestion triggers + score refresh |
-| `webhooks.py` | `/webhooks` | `POST /red-alert` | n8n webhook for Red alerts in last 24h |
+| `webhooks.py` | `/webhooks` | `POST /red-alert` | Red-alert webhook for verified Red events in last 24h |
 
 ### 6.2 Exception Mapping
 
@@ -408,7 +406,8 @@ All routes are mounted under `/api/v1/` via `app/api/v1/router.py`.
 | `EMAIL_FROM` / `DEFAULT_FROM_EMAIL` | Sender email addresses |
 | `APAC_EMAIL` / `NA_EMAIL` / `EMEA_EMAIL` / `EXECUTIVE_EMAIL` | Regional distribution lists |
 | `SENTRY_DSN` | Sentry error tracking DSN |
-| `N8N_WEBHOOK_BASE_URL` | n8n webhook base URL |
+| `BRIEFING_RECIPIENT` | Default recipient for briefing emails |
+| `BRIEFING_CC` | CC recipients for briefing emails |
 | `API_BASE_URL` | Public API base URL |
 
 ### 8.3 Neon PostgreSQL Compatibility
@@ -479,7 +478,7 @@ Alembic and SQLAlchemy engine both filter out `sslmode`/`channel_binding` query 
 │  • REST API responses (JSON)                                                 │
 │  • Department briefings (JSON + HTML email)                                  │
 │  • Natural language Q&A                                                      │
-│  • Red Alert webhooks → n8n → immediate regional email alerts                │
+│  • Red Alert webhooks → Railway cron → immediate regional email alerts       │
 │  • Weekly digest emails with LOE dashboard + event cards                     │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -555,15 +554,15 @@ start.sh
 
 ---
 
-## 12. n8n Automation Workflows
+## 12. Railway Cron Automation
 
-Defined in `docs/n8n-workflows.md`.
+Defined in `docs/railway_cron_architecture.md`.
 
-| Workflow | Trigger | Action |
-|----------|---------|--------|
-| **Weekly Department Briefing** | Monday 08:00 UTC | Loops molecules, generates HTML email, routes by geography |
-| **Red Alert** | Hourly cron | Checks for verified Red events in last 24h, sends immediate alerts |
-| **Press Release Monitor** | Every 15 minutes | Fetches RSS/news, ingests new PRs, triggers red alert check |
+| Service | Schedule | Action |
+|---------|----------|--------|
+| **biosim-ingest** | Daily 06:00 UTC | Refresh ClinicalTrials.gov data |
+| **biosim-emailer-weekly** | Monday 08:00 UTC | Send weekly digest emails for `weekly_digest` molecules |
+| **biosim-emailer-alerts** | Daily 09:00 UTC | Send threshold breach alerts for `alert_only` molecules |
 
 ---
 
@@ -633,7 +632,7 @@ python scripts/seed_competitors.py
 | **Traffic Light** | Green (low threat), Amber (medium threat), Red (high threat) |
 | **Deterministic** | Rule-based, reproducible, non-AI logic |
 | **Provenance** | Audit trail showing where each data point came from and how it was transformed |
-| **n8n** | Open-source workflow automation tool (similar to Zapier) |
+| **Railway Cron** | Railway-native scheduled job execution (no external dependencies) |
 
 ---
 

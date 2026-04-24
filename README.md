@@ -28,6 +28,15 @@ python -m app.db.seeds
 uvicorn app.main:app --reload
 ```
 
+## Email Automation
+
+Powered by Railway-native cron services. Zero external dependencies.
+
+- `biosim-emailer-weekly`: Mondays 08:00 UTC — sends digest for all `weekly_digest` molecules
+- `biosim-emailer-alerts`: Daily 09:00 UTC — sends alerts for `alert_only` molecules crossing thresholds
+
+See `docs/railway_cron_architecture.md` for full architecture details.
+
 ## Testing
 
 ```bash
@@ -45,4 +54,5 @@ mypy app
 - `app/schemas/` - Pydantic v2 request/response schemas
 - `app/services/` - Business logic and ingestion engines
 - `app/db/` - Database session, migrations, seeds
+- `scripts/` - Standalone utilities and cron job scripts
 - `tests/` - pytest test suite

@@ -46,7 +46,7 @@ def _resolve_region_email(country: str | None, region: str | None) -> str:
 async def red_alert_webhook(
     db: AsyncSession = Depends(get_db),
 ) -> dict[str, Any]:
-    """Check for verified Red events in the last 24 hours. Called by n8n."""
+    """Check for verified Red events in the last 24 hours. Called by Railway cron services."""
     since = datetime.now(UTC) - timedelta(hours=24)
 
     events_result = await db.execute(
