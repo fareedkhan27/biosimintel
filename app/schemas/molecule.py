@@ -17,6 +17,12 @@ class MoleculeBase(BaseModel):
     competitor_universe: list[str] = Field(default_factory=list)
     scoring_weights: dict[str, Any] = Field(default_factory=dict)
     is_active: bool = True
+    inn: str | None = Field(None, max_length=100)
+    brand_name: str | None = Field(None, max_length=100)
+    mechanism_of_action: str | None = Field(None, max_length=200)
+    therapeutic_area: str | None = Field(None, max_length=100)
+    status: str | None = Field(None, max_length=20)
+    is_reference_product: bool = False
 
 
 class MoleculeCreate(MoleculeBase):
@@ -33,6 +39,12 @@ class MoleculeUpdate(BaseModel):
     competitor_universe: list[str] | None = None
     scoring_weights: dict[str, Any] | None = None
     is_active: bool | None = None
+    inn: str | None = Field(None, max_length=100)
+    brand_name: str | None = Field(None, max_length=100)
+    mechanism_of_action: str | None = Field(None, max_length=200)
+    therapeutic_area: str | None = Field(None, max_length=100)
+    status: str | None = Field(None, max_length=20)
+    is_reference_product: bool | None = None
 
 
 class MoleculeBriefingPreference(BaseModel):

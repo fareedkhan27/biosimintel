@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BIOSIM GM Summary</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f4f4f7;font-family:Arial,Helvetica,sans-serif;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:#f4f4f7;">
+    <tr>
+      <td align="center" style="padding:20px 0;">
+        <table role="presentation" width="800" cellspacing="0" cellpadding="0" border="0" style="max-width:800px;width:100%;background-color:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+          <!-- Header -->
+          <tr>
+            <td style="background-color:#7030A0;padding:24px 32px;color:#ffffff;">
+              <h1 style="margin:0;font-size:22px;font-weight:bold;letter-spacing:0.5px;">GM EXECUTIVE SUMMARY</h1>
+              <p style="margin:6px 0 0;font-size:13px;opacity:0.9;">{{ report_date }} | All Regions</p>
+            </td>
+          </tr>
+
+          <!-- 3-Column Heatmap -->
+          <tr>
+            <td style="padding:24px 32px 0;">
+              <h2 style="margin:0 0 16px;font-size:16px;color:#333333;text-transform:uppercase;letter-spacing:0.5px;">Regional Risk Overview</h2>
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                  {% for region in region_heatmaps %}
+                  <td style="width:33%;padding:8px;vertical-align:top;">
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:#fafafa;border-radius:6px;padding:12px;">
+                      <tr>
+                        <td style="padding:12px;">
+                          <h3 style="margin:0 0 10px;font-size:14px;color:#7030A0;text-align:center;">{{ region.region_name }}</h3>
+                          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                            <tr>
+                              <td style="padding:6px;text-align:center;background-color:#ffe5e5;border-radius:4px;">
+                                <p style="margin:0;font-size:18px;font-weight:bold;color:#FF0000;">{{ region.high_threat_count }}</p>
+                                <p style="margin:0;font-size:10px;color:#666666;">HIGH</p>
+                              </td>
+                            </tr>
+                            <tr><td style="height:6px;"></td></tr>
+                            <tr>
+                              <td style="padding:6px;text-align:center;background-color:#fff5e5;border-radius:4px;">
+                                <p style="margin:0;font-size:18px;font-weight:bold;color:#FFC000;">{{ region.medium_threat_count }}</p>
+                                <p style="margin:0;font-size:10px;color:#666666;">MEDIUM</p>
+                              </td>
+                            </tr>
+                            <tr><td style="height:6px;"></td></tr>
+                            <tr>
+                              <td style="padding:6px;text-align:center;background-color:#e5f9ee;border-radius:4px;">
+                                <p style="margin:0;font-size:18px;font-weight:bold;color:#00B050;">{{ region.low_threat_count }}</p>
+                                <p style="margin:0;font-size:10px;color:#666666;">LOW</p>
+                              </td>
+                            </tr>
+                          </table>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                  {% endfor %}
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Top 5 Signals -->
+          <tr>
+            <td style="padding:20px 32px 0;">
+              <h2 style="margin:0 0 12px;font-size:16px;color:#333333;text-transform:uppercase;letter-spacing:0.5px;">Top 5 Signals Across All Regions</h2>
+              {% if top_signals %}
+                {% for signal in top_signals %}
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-bottom:8px;background-color:#f8f5fc;border-left:4px solid #7030A0;padding:10px;border-radius:4px;">
+                  <tr>
+                    <td style="padding:10px 12px;">
+                      <p style="margin:0 0 4px;font-size:13px;color:#333333;font-weight:bold;">{{ signal.signal_type.value | replace('_', ' ') | title }} <span style="font-weight:normal;color:#888888;">| Relevance: {{ signal.relevance_score }}</span></p>
+                      <p style="margin:0;font-size:11px;color:#555555;">Tier {{ signal.tier }} | {{ signal.department_tags | join(', ') }}</p>
+                    </td>
+                  </tr>
+                </table>
+                {% endfor %}
+              {% else %}
+                <p style="margin:0 0 16px;font-size:13px;color:#888888;font-style:italic;">No top signals to display.</p>
+              {% endif %}
+            </td>
+          </tr>
+
+          <!-- Combo Threat Summary -->
+          <tr>
+            <td style="padding:20px 32px 0;">
+              <h2 style="margin:0 0 12px;font-size:16px;color:#333333;text-transform:uppercase;letter-spacing:0.5px;">Combo Threat Summary</h2>
+              {% if full_combo_competitors %}
+                <p style="margin:0 0 8px;font-size:13px;color:#333333;">Competitors with <strong>FULL</strong> combo capability:</p>
+                <ul style="margin:0 0 16px;padding:0 0 0 18px;">
+                  {% for comp in full_combo_competitors %}
+                  <li style="margin-bottom:4px;font-size:13px;color:#FF0000;font-weight:bold;">{{ comp }}</li>
+                  {% endfor %}
+                </ul>
+              {% else %}
+                <p style="margin:0 0 16px;font-size:13px;color:#888888;font-style:italic;">No competitors with full combo capability detected.</p>
+              {% endif %}
+            </td>
+          </tr>
+
+          <!-- RoW Highlights -->
+          <tr>
+            <td style="padding:20px 32px 0;">
+              <h2 style="margin:0 0 12px;font-size:16px;color:#333333;text-transform:uppercase;letter-spacing:0.5px;">RoW Highlights</h2>
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:#fafafa;border-radius:6px;padding:16px;">
+                <tr>
+                  <td style="padding:16px;">
+                    <p style="margin:0 0 8px;font-size:13px;color:#333333;"><strong>India:</strong> {{ row_india or 'Leading indicator data pending' }}</p>
+                    <p style="margin:0 0 8px;font-size:13px;color:#333333;"><strong>China:</strong> {{ row_china or 'Leading indicator data pending' }}</p>
+                    <p style="margin:0;font-size:13px;color:#333333;"><strong>US:</strong> {{ row_us or 'Leading indicator data pending' }}</p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding:24px 32px;border-top:1px solid #eeeeee;margin-top:16px;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                  <td align="center" style="font-size:12px;color:#888888;">
+                    <p style="margin:0 0 8px;">
+                      <a href="#" style="color:#7030A0;text-decoration:none;margin:0 8px;">View Dashboard</a>
+                      <a href="#" style="color:#7030A0;text-decoration:none;margin:0 8px;">Settings</a>
+                      <a href="#" style="color:#7030A0;text-decoration:none;margin:0 8px;">Feedback</a>
+                    </p>
+                    <p style="margin:0;font-size:11px;color:#aaaaaa;">BIOSIM Intelligence Platform © {{ year }}</p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

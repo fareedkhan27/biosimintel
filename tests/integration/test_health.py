@@ -14,3 +14,4 @@ async def test_health_check(client: AsyncClient) -> None:
     assert "dependencies" in data
     assert "database" in data["dependencies"]
     assert "redis" in data["dependencies"]
+    assert "geo_intelligence" in data["dependencies"]

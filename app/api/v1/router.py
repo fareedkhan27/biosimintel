@@ -5,13 +5,17 @@ from fastapi import APIRouter
 from app.api.v1 import (
     alerts,
     competitors,
+    email_v2,
     events,
+    geo_intelligence,
     health,
     indications,
     intelligence,
     jobs,
     molecules,
+    noise,
     sec_filings,
+    threat_matrix,
     timeline,
     webhooks,
 )
@@ -23,9 +27,13 @@ api_router.include_router(molecules.router, prefix="/molecules", tags=["molecule
 api_router.include_router(events.router, prefix="/events", tags=["events"])
 api_router.include_router(competitors.router, prefix="/competitors", tags=["competitors"])
 api_router.include_router(intelligence.router, prefix="/intelligence", tags=["intelligence"])
+api_router.include_router(email_v2.router, prefix="/intelligence", tags=["email-v2"])
+api_router.include_router(geo_intelligence.router, tags=["geo-intelligence"])
+api_router.include_router(noise.router, tags=["noise"])
 api_router.include_router(indications.router, tags=["Indication Intelligence"])
 api_router.include_router(timeline.router, tags=["Predictive Timeline"])
 api_router.include_router(alerts.router, tags=["Intelligence Alerts"])
 api_router.include_router(jobs.router, prefix="/jobs", tags=["jobs"])
 api_router.include_router(webhooks.router, prefix="/webhooks", tags=["webhooks"])
 api_router.include_router(sec_filings.router, tags=["sec-edgar"])
+api_router.include_router(threat_matrix.router, prefix="/threat-matrix", tags=["threat-matrix"])

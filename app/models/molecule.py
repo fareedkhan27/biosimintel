@@ -25,6 +25,14 @@ class Molecule(Base):  # type: ignore[misc]
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), default=utc_now_sqlalchemy)
 
+    # Phase 2: expanded molecule metadata
+    inn = Column(String(100), unique=True, nullable=True)
+    brand_name = Column(String(100), nullable=True)
+    mechanism_of_action = Column(String(200), nullable=True)
+    therapeutic_area = Column(String(100), nullable=True)
+    status = Column(String(20), nullable=True, default="active")
+    is_reference_product = Column(Boolean, default=False)
+
     # Briefing preference controls (Phase 4D)
     briefing_mode = Column(String(20), nullable=False, default="weekly_digest")
     alert_threshold = Column(Integer, nullable=False, default=60)

@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BIOSIM Weekly Strategic Briefing</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f4f4f7;font-family:Arial,Helvetica,sans-serif;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:#f4f4f7;">
+    <tr>
+      <td align="center" style="padding:20px 0;">
+        <table role="presentation" width="800" cellspacing="0" cellpadding="0" border="0" style="max-width:800px;width:100%;background-color:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+          <!-- Header -->
+          <tr>
+            <td style="background-color:#7030A0;padding:24px 32px;color:#ffffff;">
+              <h1 style="margin:0;font-size:22px;font-weight:bold;letter-spacing:0.5px;">WEEKLY STRATEGIC BRIEFING</h1>
+              <p style="margin:6px 0 0;font-size:13px;opacity:0.9;">{{ week_range }} | Region: {{ region_name }}</p>
+            </td>
+          </tr>
+
+          <!-- Executive Summary -->
+          <tr>
+            <td style="padding:24px 32px 0;">
+              <h2 style="margin:0 0 12px;font-size:16px;color:#333333;text-transform:uppercase;letter-spacing:0.5px;">Executive Summary</h2>
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:#f8f5fc;border-radius:6px;padding:16px;">
+                <tr>
+                  <td style="padding:16px;">
+                    <p style="margin:0 0 8px;font-size:13px;color:#333333;"><strong>This week:</strong> {{ tier1_count }} confirmed, {{ tier2_count }} probable, {{ tier3_count }} early signals.</p>
+                    <p style="margin:0;font-size:13px;color:#555555;">{{ highlight }}</p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Regional Risk Heatmap -->
+          <tr>
+            <td style="padding:20px 32px 0;">
+              <h2 style="margin:0 0 12px;font-size:16px;color:#333333;text-transform:uppercase;letter-spacing:0.5px;">Regional Risk Heatmap</h2>
+              {% if heatmap_countries %}
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border-collapse:collapse;">
+                <tr style="background-color:#7030A0;color:#ffffff;">
+                  <th style="padding:10px 12px;text-align:left;font-size:12px;">Country</th>
+                  <th style="padding:10px 12px;text-align:center;font-size:12px;">High</th>
+                  <th style="padding:10px 12px;text-align:center;font-size:12px;">Medium</th>
+                  <th style="padding:10px 12px;text-align:center;font-size:12px;">Low</th>
+                </tr>
+                {% for country in heatmap_countries %}
+                <tr style="border-bottom:1px solid #eeeeee;">
+                  <td style="padding:10px 12px;font-size:13px;color:#333333;">{{ country.country_name }}</td>
+                  <td style="padding:10px 12px;text-align:center;font-size:13px;color:#FF0000;font-weight:bold;">{{ country.high_threat_competitors }}</td>
+                  <td style="padding:10px 12px;text-align:center;font-size:13px;color:#FFC000;font-weight:bold;">{{ country.medium_threat_competitors }}</td>
+                  <td style="padding:10px 12px;text-align:center;font-size:13px;color:#00B050;font-weight:bold;">{{ country.low_threat_competitors }}</td>
+                </tr>
+                {% endfor %}
+              </table>
+              {% else %}
+              <p style="margin:0 0 16px;font-size:13px;color:#888888;font-style:italic;">No heatmap data available.</p>
+              {% endif %}
+            </td>
+          </tr>
+
+          <!-- Competitor Timeline Updates -->
+          <tr>
+            <td style="padding:20px 32px 0;">
+              <h2 style="margin:0 0 12px;font-size:16px;color:#333333;text-transform:uppercase;letter-spacing:0.5px;">Competitor Timeline Updates</h2>
+              {% if timeline_entries %}
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border-collapse:collapse;">
+                <tr style="background-color:#7030A0;color:#ffffff;">
+                  <th style="padding:10px 12px;text-align:left;font-size:12px;">Company</th>
+                  <th style="padding:10px 12px;text-align:left;font-size:12px;">Asset</th>
+                  <th style="padding:10px 12px;text-align:left;font-size:12px;">Stage</th>
+                  <th style="padding:10px 12px;text-align:left;font-size:12px;">Projected Launch</th>
+                  <th style="padding:10px 12px;text-align:left;font-size:12px;">Confidence</th>
+                </tr>
+                {% for entry in timeline_entries %}
+                <tr style="border-bottom:1px solid #eeeeee;">
+                  <td style="padding:10px 12px;font-size:12px;color:#333333;">{{ entry.competitor_name }}</td>
+                  <td style="padding:10px 12px;font-size:12px;color:#333333;">{{ entry.asset_name or '—' }}</td>
+                  <td style="padding:10px 12px;font-size:12px;color:#333333;">{{ entry.development_stage or '—' }}</td>
+                  <td style="padding:10px 12px;font-size:12px;color:#333333;">{{ entry.estimated_launch_date or 'TBD' }}</td>
+                  <td style="padding:10px 12px;font-size:12px;color:#333333;">{{ entry.confidence_level or '—' }}</td>
+                </tr>
+                {% endfor %}
+              </table>
+              {% else %}
+              <p style="margin:0 0 16px;font-size:13px;color:#888888;font-style:italic;">No timeline updates this week.</p>
+              {% endif %}
+            </td>
+          </tr>
+
+          <!-- Combo Threat Assessment -->
+          <tr>
+            <td style="padding:20px 32px 0;">
+              <h2 style="margin:0 0 12px;font-size:16px;color:#333333;text-transform:uppercase;letter-spacing:0.5px;">Combo Threat Assessment</h2>
+              {% if combo_assessments %}
+                {% for assessment in combo_assessments %}
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-bottom:8px;">
+                  <tr>
+                    <td style="padding:10px 12px;background-color:{% if assessment.threat_level == 'HIGH' %}#ffe5e5{% elif assessment.threat_level == 'MODERATE' %}#fff5e5{% else %}#e5f9ee{% endif %};border-left:4px solid {% if assessment.threat_level == 'HIGH' %}#FF0000{% elif assessment.threat_level == 'MODERATE' %}#FFC000{% else %}#00B050{% endif %};border-radius:4px;">
+                      <p style="margin:0;font-size:13px;color:#333333;"><strong>{{ assessment.competitor }}</strong> — {{ assessment.combo_capability }} ({{ assessment.threat_level }})</p>
+                    </td>
+                  </tr>
+                </table>
+                {% endfor %}
+              {% else %}
+                <p style="margin:0 0 16px;font-size:13px;color:#888888;font-style:italic;">No combo assessments available.</p>
+              {% endif %}
+            </td>
+          </tr>
+
+          <!-- Revenue At Risk -->
+          <tr>
+            <td style="padding:20px 32px 0;">
+              <h2 style="margin:0 0 12px;font-size:16px;color:#333333;text-transform:uppercase;letter-spacing:0.5px;">Revenue At Risk</h2>
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:#fafafa;border-radius:6px;padding:16px;">
+                <tr>
+                  <td style="padding:16px;text-align:center;">
+                    <p style="margin:0;font-size:13px;color:#888888;font-style:italic;">Finance team to populate — model under construction for Phase 6+</p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Recommended Actions -->
+          <tr>
+            <td style="padding:20px 32px 0;">
+              <h2 style="margin:0 0 12px;font-size:16px;color:#333333;text-transform:uppercase;letter-spacing:0.5px;">Recommended Actions</h2>
+              {% if recommended_actions %}
+              <ul style="margin:0;padding:0 0 0 18px;">
+                {% for action in recommended_actions %}
+                <li style="margin-bottom:8px;font-size:13px;color:#333333;">{{ action }}</li>
+                {% endfor %}
+              </ul>
+              {% else %}
+              <p style="margin:0 0 16px;font-size:13px;color:#888888;font-style:italic;">No specific actions recommended this week.</p>
+              {% endif %}
+            </td>
+          </tr>
+
+          <!-- Press & Social Noise Digest -->
+          <tr>
+            <td style="padding:20px 32px 0;">
+              <h2 style="margin:0 0 12px;font-size:16px;color:#333333;text-transform:uppercase;letter-spacing:0.5px;">Press & Social Noise Digest</h2>
+              <p style="margin:0 0 12px;font-size:11px;color:#FF0000;font-weight:bold;">🔴 UNCONFIRMED — DO NOT ACT</p>
+              {% if noise_digest %}
+                {% for item in noise_digest[:5] %}
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-bottom:8px;background-color:#fff5f5;border-left:4px solid #FF0000;padding:12px;border-radius:4px;">
+                  <tr>
+                    <td style="padding:10px 12px;">
+                      <p style="margin:0 0 4px;font-size:12px;color:#cc0000;font-weight:bold;">{{ item.source_type | title }}</p>
+                      <p style="margin:0 0 4px;font-size:12px;color:#333333;">{{ item.raw_text[:200] }}{% if item.raw_text|length > 200 %}...{% endif %}</p>
+                      <p style="margin:0;font-size:11px;color:#555555;">Author: {{ item.source_author or 'Unknown' }} | Days left: {{ item.days_until_expiry }}</p>
+                    </td>
+                  </tr>
+                </table>
+                {% endfor %}
+                <p style="margin:8px 0 16px;font-size:11px;color:#888888;font-style:italic;">These signals have NOT been verified against primary sources. Do not take action. Click [Verify] to send to verification queue.</p>
+              {% else %}
+                <p style="margin:0 0 16px;font-size:13px;color:#888888;font-style:italic;">No noise digest items this week.</p>
+              {% endif %}
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding:24px 32px;border-top:1px solid #eeeeee;margin-top:16px;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                  <td align="center" style="font-size:12px;color:#888888;">
+                    <p style="margin:0 0 8px;">
+                      <a href="#" style="color:#7030A0;text-decoration:none;margin:0 8px;">View Dashboard</a>
+                      <a href="#" style="color:#7030A0;text-decoration:none;margin:0 8px;">Settings</a>
+                      <a href="#" style="color:#7030A0;text-decoration:none;margin:0 8px;">Feedback</a>
+                    </p>
+                    <p style="margin:0;font-size:11px;color:#aaaaaa;">BIOSIM Intelligence Platform © {{ year }}</p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

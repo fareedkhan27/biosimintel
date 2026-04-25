@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BIOSIM Daily Pulse</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f4f4f7;font-family:Arial,Helvetica,sans-serif;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:#f4f4f7;">
+    <tr>
+      <td align="center" style="padding:20px 0;">
+        <table role="presentation" width="800" cellspacing="0" cellpadding="0" border="0" style="max-width:800px;width:100%;background-color:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+          <!-- Header -->
+          <tr>
+            <td style="background-color:#7030A0;padding:24px 32px;color:#ffffff;">
+              <h1 style="margin:0;font-size:22px;font-weight:bold;letter-spacing:0.5px;">BIOSIM DAILY PULSE</h1>
+              <p style="margin:6px 0 0;font-size:13px;opacity:0.9;">{{ report_date }} | Molecules: Nivolumab (Opdivo) + Ipilimumab (Yervoy)</p>
+            </td>
+          </tr>
+
+          <!-- Critical Signals -->
+          <tr>
+            <td style="padding:24px 32px 0;">
+              <h2 style="margin:0 0 12px;font-size:16px;color:#333333;text-transform:uppercase;letter-spacing:0.5px;">Confirmed Signals <span style="background-color:#00B050;color:#fff;font-size:11px;padding:2px 8px;border-radius:12px;margin-left:6px;">Tier 1</span></h2>
+              {% if tier1_signals %}
+                {% for signal in tier1_signals %}
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-bottom:10px;background-color:#f0fff4;border-left:4px solid #00B050;padding:12px;border-radius:4px;">
+                  <tr>
+                    <td style="padding:12px;">
+                      <p style="margin:0 0 4px;font-size:13px;color:#00B050;font-weight:bold;">{{ signal.signal_type.value | replace('_', ' ') | title }}</p>
+                      <p style="margin:0;font-size:12px;color:#555555;">Relevance: {{ signal.relevance_score }} | Departments: {{ signal.department_tags | join(', ') }}</p>
+                    </td>
+                  </tr>
+                </table>
+                {% endfor %}
+              {% else %}
+                <p style="margin:0 0 16px;font-size:13px;color:#888888;font-style:italic;">No confirmed signals in the last 24h.</p>
+              {% endif %}
+            </td>
+          </tr>
+
+          <!-- Probable Signals -->
+          <tr>
+            <td style="padding:20px 32px 0;">
+              <h2 style="margin:0 0 12px;font-size:16px;color:#333333;text-transform:uppercase;letter-spacing:0.5px;">Probable Signals <span style="background-color:#FFC000;color:#fff;font-size:11px;padding:2px 8px;border-radius:12px;margin-left:6px;">Tier 2</span></h2>
+              {% if tier2_signals %}
+                {% for signal in tier2_signals %}
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-bottom:10px;background-color:#fffbf0;border-left:4px solid #FFC000;padding:12px;border-radius:4px;">
+                  <tr>
+                    <td style="padding:12px;">
+                      <p style="margin:0 0 4px;font-size:13px;color:#b38600;font-weight:bold;">{{ signal.signal_type.value | replace('_', ' ') | title }}</p>
+                      <p style="margin:0;font-size:12px;color:#555555;">Relevance: {{ signal.relevance_score }} | Departments: {{ signal.department_tags | join(', ') }}</p>
+                    </td>
+                  </tr>
+                </table>
+                {% endfor %}
+              {% else %}
+                <p style="margin:0 0 16px;font-size:13px;color:#888888;font-style:italic;">No probable signals in the last 24h.</p>
+              {% endif %}
+            </td>
+          </tr>
+
+          <!-- RoW Early Signals -->
+          <tr>
+            <td style="padding:20px 32px 0;">
+              <h2 style="margin:0 0 12px;font-size:16px;color:#333333;text-transform:uppercase;letter-spacing:0.5px;">RoW Early Signals <span style="background-color:#FF0000;color:#fff;font-size:11px;padding:2px 8px;border-radius:12px;margin-left:6px;">Tier 3</span></h2>
+              <p style="margin:0 0 12px;font-size:11px;color:#FF0000;font-weight:bold;">⚠ Unconfirmed — Do Not Act</p>
+              {% if tier3_signals %}
+                {% for signal in tier3_signals %}
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-bottom:10px;background-color:#fff5f5;border-left:4px solid #FF0000;padding:12px;border-radius:4px;">
+                  <tr>
+                    <td style="padding:12px;">
+                      <p style="margin:0 0 4px;font-size:13px;color:#cc0000;font-weight:bold;">{{ signal.signal_type.value | replace('_', ' ') | title }}</p>
+                      <p style="margin:0;font-size:12px;color:#555555;">Relevance: {{ signal.relevance_score }} | Departments: {{ signal.department_tags | join(', ') }}</p>
+                    </td>
+                  </tr>
+                </table>
+                {% endfor %}
+              {% else %}
+                <p style="margin:0 0 16px;font-size:13px;color:#888888;font-style:italic;">No early signals in the last 24h.</p>
+              {% endif %}
+            </td>
+          </tr>
+
+          <!-- Country Snapshots -->
+          <tr>
+            <td style="padding:20px 32px 0;">
+              <h2 style="margin:0 0 12px;font-size:16px;color:#333333;text-transform:uppercase;letter-spacing:0.5px;">Country Snapshots</h2>
+              {% if country_snapshots %}
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                  <tr>
+                    {% for snapshot in country_snapshots %}
+                    <td style="width:33%;padding:8px;vertical-align:top;">
+                      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:#fafafa;border-radius:6px;padding:12px;">
+                        <tr>
+                          <td style="padding:12px;">
+                            <p style="margin:0 0 4px;font-size:14px;font-weight:bold;color:#333333;">{{ snapshot.flag }} {{ snapshot.name }}</p>
+                            <p style="margin:0 0 4px;font-size:11px;color:#666666;">Model: {{ snapshot.operating_model }}</p>
+                            <p style="margin:0;font-size:11px;color:#7030A0;font-weight:bold;">{{ snapshot.signal_count }} signal(s) today</p>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                    {% if loop.index is divisibleby 3 %}</tr><tr>{% endif %}
+                    {% endfor %}
+                  </tr>
+                </table>
+              {% else %}
+                <p style="margin:0 0 16px;font-size:13px;color:#888888;font-style:italic;">No country snapshots available for your region today.</p>
+              {% endif %}
+            </td>
+          </tr>
+
+          <!-- Combo Threat Corner -->
+          <tr>
+            <td style="padding:20px 32px 0;">
+              <h2 style="margin:0 0 12px;font-size:16px;color:#333333;text-transform:uppercase;letter-spacing:0.5px;">Combo Threat Corner</h2>
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:#f8f5fc;border-left:4px solid #7030A0;padding:12px;border-radius:4px;">
+                <tr>
+                  <td style="padding:12px;">
+                    <p style="margin:0;font-size:13px;color:#333333;">Opdivo+Yervoy combo threat: <strong>{{ combo_threat_level }}</strong> — {{ combo_threat_detail }}</p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- Footer -->
+          <tr>
+            <td style="padding:24px 32px;border-top:1px solid #eeeeee;margin-top:16px;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                  <td align="center" style="font-size:12px;color:#888888;">
+                    <p style="margin:0 0 8px;">
+                      <a href="#" style="color:#7030A0;text-decoration:none;margin:0 8px;">View Dashboard</a>
+                      <a href="#" style="color:#7030A0;text-decoration:none;margin:0 8px;">Settings</a>
+                      <a href="#" style="color:#7030A0;text-decoration:none;margin:0 8px;">Feedback</a>
+                    </p>
+                    <p style="margin:0;font-size:11px;color:#aaaaaa;">BIOSIM Intelligence Platform © {{ year }}</p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

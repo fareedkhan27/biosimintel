@@ -10,18 +10,30 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from alembic import context
 from app.core.config import settings
 from app.db.session import Base
+from app.models.combo import (
+    CompetitorMoleculeAssignment,  # noqa: F401
+    MoleculePair,  # noqa: F401
+)
 from app.models.competitor import Competitor  # noqa: F401
 from app.models.data_provenance import DataProvenance  # noqa: F401
+from app.models.email_pref import EmailPreference  # noqa: F401
 from app.models.event import Event  # noqa: F401
+from app.models.geo import (
+    CompetitorCapability,  # noqa: F401
+    Country,  # noqa: F401
+    Region,  # noqa: F401
+)
 from app.models.intelligence_baseline import IntelligenceBaseline  # noqa: F401
 from app.models.llm_insight_cache import LlmInsightCache  # noqa: F401
 
 # Import all models so they are registered with Base metadata
 from app.models.molecule import Molecule  # noqa: F401
+from app.models.noise import NoiseSignal  # noqa: F401
 from app.models.patent_cliff import PatentCliff  # noqa: F401
 from app.models.review import Review  # noqa: F401
 from app.models.scoring_rule import ScoringRule  # noqa: F401
 from app.models.sec_filing import SecFiling  # noqa: F401
+from app.models.signal import GeoSignal  # noqa: F401
 from app.models.source_document import SourceDocument  # noqa: F401
 
 config = context.config
