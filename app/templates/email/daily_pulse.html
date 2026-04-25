@@ -89,6 +89,19 @@
       background: #f5f5f5;
       border-radius: 4px;
     }
+    .source-citation {
+      font-size: 10px;
+      color: #666;
+      margin-top: 4px;
+      display: block;
+    }
+    .source-citation a {
+      color: #0563C1;
+      text-decoration: none;
+    }
+    .source-citation a:hover {
+      text-decoration: underline;
+    }
   </style>
 </head>
 <body style="margin:0;padding:0;background-color:#f4f4f7;font-family:Arial,Helvetica,sans-serif;">
@@ -127,6 +140,15 @@
                     <td style="padding:12px;">
                       <p style="margin:0 0 4px;font-size:13px;color:#00B050;font-weight:bold;">{{ signal.signal_type.value | replace('_', ' ') | title }}</p>
                       <p style="margin:0;font-size:12px;color:#555555;">Relevance: {{ signal.relevance_score }} | Departments: {{ signal.department_tags | join(', ') }}</p>
+                      {% set meta = signal_meta[signal.id] %}
+                      <span class="source-citation">
+                        {% if meta.source_url %}
+                          📡 Source: <a href="{{ meta.source_url }}" style="color:#0563C1;">{{ meta.source_type }} {{ meta.source_document_id or '' }}</a>
+                          | Verified: {{ meta.fetched_at or 'Pending' }}
+                        {% else %}
+                          📡 Source: Internal Intelligence — Verification pending
+                        {% endif %}
+                      </span>
                     </td>
                   </tr>
                 </table>
@@ -148,6 +170,15 @@
                     <td style="padding:12px;">
                       <p style="margin:0 0 4px;font-size:13px;color:#b38600;font-weight:bold;">{{ signal.signal_type.value | replace('_', ' ') | title }}</p>
                       <p style="margin:0;font-size:12px;color:#555555;">Relevance: {{ signal.relevance_score }} | Departments: {{ signal.department_tags | join(', ') }}</p>
+                      {% set meta = signal_meta[signal.id] %}
+                      <span class="source-citation">
+                        {% if meta.source_url %}
+                          📡 Source: <a href="{{ meta.source_url }}" style="color:#0563C1;">{{ meta.source_type }} {{ meta.source_document_id or '' }}</a>
+                          | Verified: {{ meta.fetched_at or 'Pending' }}
+                        {% else %}
+                          📡 Source: Internal Intelligence — Verification pending
+                        {% endif %}
+                      </span>
                     </td>
                   </tr>
                 </table>
@@ -170,6 +201,15 @@
                     <td style="padding:12px;">
                       <p style="margin:0 0 4px;font-size:13px;color:#cc0000;font-weight:bold;">{{ signal.signal_type.value | replace('_', ' ') | title }}</p>
                       <p style="margin:0;font-size:12px;color:#555555;">Relevance: {{ signal.relevance_score }} | Departments: {{ signal.department_tags | join(', ') }}</p>
+                      {% set meta = signal_meta[signal.id] %}
+                      <span class="source-citation">
+                        {% if meta.source_url %}
+                          📡 Source: <a href="{{ meta.source_url }}" style="color:#0563C1;">{{ meta.source_type }} {{ meta.source_document_id or '' }}</a>
+                          | Verified: {{ meta.fetched_at or 'Pending' }}
+                        {% else %}
+                          📡 Source: Internal Intelligence — Verification pending
+                        {% endif %}
+                      </span>
                     </td>
                   </tr>
                 </table>
@@ -216,6 +256,17 @@
                           <span class="stage">{{ threat.stage }}</span>
                           <span class="score">Relevance: {{ threat.score }} ({{ threat.threat_level }})</span>
                           <span class="rationale">{{ threat.rationale }}</span>
+                          <span class="source-citation">
+                            📡 Source:
+                            {% for src in threat.sources %}
+                              {% if src.url %}
+                                <a href="{{ src.url }}" style="color:#0563C1;">{{ src.name }} {{ src.id or '' }}</a>{% if not loop.last %} | {% endif %}
+                              {% else %}
+                                {{ src.name }}{% if not loop.last %} | {% endif %}
+                              {% endif %}
+                            {% endfor %}
+                            | Verified: {{ report_date }}
+                          </span>
                         </div>
                       </div>
                       {% endfor %}
@@ -278,6 +329,30 @@
                   </td>
                 </tr>
               </table>
+            </td>
+          </tr>
+
+          <!-- Data Sources Footer -->
+          <tr>
+            <td style="padding:20px 32px 0;">
+              <div style="background:#F5F5F5; border-radius:6px; padding:12px; margin-top:20px; font-size:10px; color:#666;">
+                <strong>Data Sources & Verification:</strong><br>
+                • ClinicalTrials.gov v2 API — Daily poll | <a href="https://clinicaltrials.gov/data-api/api" style="color:#0563C1;">API Docs</a><br>
+                • SEC EDGAR — Daily full-text search | <a href="https://www.sec.gov/edgar/search/" style="color:#0563C1;">Search Portal</a><br>
+                • EMA EPAR — Planned for automated integration Q2 2026<br>
+                • openFDA — Planned for automated integration Q2 2026<br>
+                • PubMed / NCBI Entrez — Planned for automated integration Q2 2026<br>
+                • USPTO PatentsView — Planned for automated integration Q2 2026<br>
+                • EPO OPS — Planned for automated integration Q2 2026<br>
+                • WHO ICTRP — Planned for automated integration Q2 2026<br>
+                • EU CTIS — Planned for web scrape integration Q2 2026<br>
+                • Local Registries (ANVISA, GRLS, ALIMS) — Planned for Q3 2026<br>
+                • Press Release Monitoring (RSS) — Planned for Q3 2026<br>
+                • Social Media Surveillance — Manual verification via Noise Block<br>
+                <br>
+                <em>Every signal carries a source URL. Click any citation to view the primary source. 
+                Signals without a primary source URL are flagged as "Unconfirmed — Do Not Act."</em>
+              </div>
             </td>
           </tr>
 

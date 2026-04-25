@@ -17,8 +17,11 @@ from app.models.email_pref import (
     EmailPreference,
     EmailRegionFilter,
 )
+from app.models.event import Event
 from app.models.geo import Country, Region
+from app.models.sec_filing import SecFiling
 from app.models.signal import GeoSignal
+from app.models.source_document import SourceDocument
 from app.services.combo_service import ComboIntelligenceService
 from app.services.noise_service import NoiseBlockService
 from app.services.signal_service import SignalIntelligenceService
@@ -60,6 +63,16 @@ _REGION_CODES: dict[EmailRegionFilter, str] = {
 
 _WATCH_STAGES = {"watch", "preclinical", "pre_clinical", "terminated"}
 
+_EVENT_TYPE_TO_SOURCE_DISPLAY: dict[str, str] = {
+    "clinical_trial": "ClinicalTrials.gov",
+    "regulatory_milestone": "EMA EPAR",
+    "patent_filing": "USPTO PatentsView",
+    "sec_filing": "SEC EDGAR",
+    "press_release": "Company Press Release",
+    "pricing_update": "Industry Intelligence",
+    "combo_announcement": "Industry Intelligence",
+}
+
 
 def _is_watch_stage(stage: str | None) -> bool:
     if not stage:
@@ -84,6 +97,111 @@ def _derive_rationale(stage: str | None) -> str:
     if "preclinical" in lower or "pre_clinical" in lower:
         return "→ Preclinical stage"
     return f"→ {stage}"
+
+
+def _format_signal_source(signal: GeoSignal, event_lookup: dict[UUID, Event]) -> dict[str, Any]:
+    """Build provenance metadata for a single signal."""
+    event = event_lookup.get(cast(UUID, signal.event_id)) if signal.event_id else None
+    source_doc = event.source_document if event else None
+
+    source_url = signal.source_url or (source_doc.url if source_doc else None)
+    raw_source_type = signal.source_type or (cast(str | None, event.event_type) if event else None)
+    source_type_display = _EVENT_TYPE_TO_SOURCE_DISPLAY.get(str(raw_source_type or ""), raw_source_type or "Industry Intelligence")
+    source_document_id = cast(str | None, source_doc.external_id) if source_doc else None
+    fetched_at = signal.created_at.strftime("%Y-%m-%d") if signal.created_at else None
+
+    return {
+        "source_url": source_url,
+        "source_type": source_type_display,
+        "source_document_id": source_document_id,
+        "fetched_at": fetched_at,
+    }
+
+
+async def _build_competitor_source_links(competitor_id: UUID, db: AsyncSession) -> list[dict[str, Any]]:
+    """Query DB for all authoritative sources for a competitor and return ordered list."""
+    sources: list[dict[str, Any]] = []
+
+    # 1. ClinicalTrials.gov (highest authority)
+    ct_result = await db.execute(
+        select(Event, SourceDocument)
+        .join(SourceDocument, Event.source_document_id == SourceDocument.id)
+        .where(Event.competitor_id == competitor_id)
+        .where(SourceDocument.source_type == "clinical_trial")
+        .order_by(Event.created_at.desc())
+        .limit(1)
+    )
+    ct_row = ct_result.one_or_none()
+    if ct_row:
+        _event, sd = ct_row
+        nct_id = cast(str | None, sd.external_id)
+        sources.append({
+            "name": "ClinicalTrials.gov",
+            "url": f"https://clinicaltrials.gov/study/{nct_id}" if nct_id else cast(str | None, sd.url),
+            "id": nct_id,
+        })
+
+    # 2. SEC EDGAR
+    sec_result = await db.execute(
+        select(SecFiling)
+        .where(SecFiling.competitor_id == competitor_id)
+        .order_by(SecFiling.filing_date.desc())
+        .limit(1)
+    )
+    sec_filing = sec_result.scalar_one_or_none()
+    if sec_filing:
+        cik = cast(str, sec_filing.cik)
+        sources.append({
+            "name": "SEC EDGAR",
+            "url": f"https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK={cik}",
+            "id": cik,
+        })
+
+    # 3. EMA EPAR
+    ema_result = await db.execute(
+        select(Event, SourceDocument)
+        .join(SourceDocument, Event.source_document_id == SourceDocument.id)
+        .where(Event.competitor_id == competitor_id)
+        .where(SourceDocument.source_type == "regulatory_database")
+        .where(SourceDocument.source_name == "ema_medicines_json")
+        .order_by(Event.created_at.desc())
+        .limit(1)
+    )
+    ema_row = ema_result.one_or_none()
+    if ema_row:
+        _event, sd = ema_row
+        sources.append({
+            "name": "EMA EPAR",
+            "url": cast(str | None, sd.url),
+            "id": cast(str | None, sd.external_id),
+        })
+
+    # 4. Press Release
+    pr_result = await db.execute(
+        select(Event, SourceDocument)
+        .join(SourceDocument, Event.source_document_id == SourceDocument.id)
+        .where(Event.competitor_id == competitor_id)
+        .where(SourceDocument.source_type == "press_release")
+        .order_by(Event.created_at.desc())
+        .limit(1)
+    )
+    pr_row = pr_result.one_or_none()
+    if pr_row:
+        _event, sd = pr_row
+        sources.append({
+            "name": "Company Press Release",
+            "url": cast(str | None, sd.url),
+            "id": None,
+        })
+
+    if not sources:
+        sources.append({
+            "name": "Industry Intelligence",
+            "url": None,
+            "id": None,
+        })
+
+    return sources
 
 
 class EmailV2Service:
@@ -148,6 +266,24 @@ class EmailV2Service:
         tier2 = [s for s in filtered if s.tier == 2][:5]
         tier3 = [s for s in filtered if s.tier == 3][:3]
 
+        # Enrich signals with provenance metadata
+        signal_event_ids = [cast(UUID, s.event_id) for s in all_signals if s.event_id]
+        event_lookup: dict[UUID, Event] = {}
+        if signal_event_ids:
+            async with AsyncSessionLocal() as db:
+                from sqlalchemy.orm import selectinload
+                event_result = await db.execute(
+                    select(Event)
+                    .options(selectinload(Event.source_document))
+                    .where(Event.id.in_(signal_event_ids))
+                )
+                for evt in event_result.scalars().all():
+                    event_lookup[cast(UUID, evt.id)] = evt
+
+        signal_meta: dict[UUID, dict[str, Any]] = {}
+        for signal in all_signals:
+            signal_meta[cast(UUID, signal.id)] = _format_signal_source(signal, event_lookup)
+
         # Country threat cards + watch list
         country_threat_cards: list[dict[str, Any]] = []
         watch_list_by_name: dict[str, dict[str, Any]] = {}
@@ -179,12 +315,19 @@ class EmailV2Service:
 
                 # First pass: identify competitors that are active in ANY country
                 active_names: set[str] = set()
+                active_competitor_ids: set[UUID] = set()
                 for _country, summary in country_summaries:
                     for c in summary["competitors"]:
                         score = c["relevance_score"]
                         stage = c["development_stage"] or ""
                         if not _is_watch_stage(stage) and score >= 50:
                             active_names.add(c["competitor_name"])
+                            active_competitor_ids.add(UUID(c["competitor_id"]))
+
+                # Pre-load source links for all active competitors
+                competitor_sources: dict[UUID, list[dict[str, Any]]] = {}
+                for cid in active_competitor_ids:
+                    competitor_sources[cid] = await _build_competitor_source_links(cid, db)
 
                 # Second pass: build country cards and watch list
                 for country, summary in country_summaries:
@@ -194,8 +337,11 @@ class EmailV2Service:
                         score = c["relevance_score"]
                         stage = c["development_stage"] or ""
                         name = c["competitor_name"]
+                        cid = UUID(c["competitor_id"])
 
                         if name in active_names and not _is_watch_stage(stage) and score >= 50:
+                            sources = competitor_sources.get(cid, [])
+                            primary = sources[0] if sources else {"name": "Industry Intelligence", "url": None, "id": None}
                             active_threats.append({
                                 "competitor": name,
                                 "asset": c["asset_name"] or "Unknown",
@@ -208,6 +354,9 @@ class EmailV2Service:
                                     "LOW": "green",
                                 }.get(c["threat_level"], "green"),
                                 "rationale": _derive_rationale(stage),
+                                "primary_source": primary["name"],
+                                "source_url": primary["url"],
+                                "sources": sources,
                             })
                         elif name not in active_names and name not in watch_list_by_name:
                             # Competitor is never active anywhere → watch list
@@ -260,6 +409,7 @@ class EmailV2Service:
             tier1_signals=tier1,
             tier2_signals=tier2,
             tier3_signals=tier3,
+            signal_meta=signal_meta,
             country_threat_cards=country_threat_cards,
             watch_list=watch_list,
             combo_threat_level=combo_threat_level,
