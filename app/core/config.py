@@ -31,6 +31,10 @@ class Settings(BaseSettings):
     FDA_PURPLE_BOOK_URL: str = "https://purplebooksearch.fda.gov"
     API_BASE_URL: str = "https://api.biosimintel.com"
 
+    EMA_EPAR_ENABLED: bool = True
+    EMA_EPAR_ENDPOINT: str = "https://www.ema.europa.eu/en/medicines"
+    EMA_EPAR_POLL_HOUR_UTC: int = 6
+
     SMTP_HOST: str = ""
     SMTP_PORT: int = 587
     SMTP_USER: str = ""

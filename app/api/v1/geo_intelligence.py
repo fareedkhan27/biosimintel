@@ -176,6 +176,7 @@ async def list_signals(
     tier: int | None = Query(None, ge=1, le=3),
     since: str | None = Query(None),
     competitor_id: UUID | None = Query(None),
+    signal_type: str | None = Query(None),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
@@ -187,6 +188,8 @@ async def list_signals(
         stmt = stmt.where(GeoSignal.competitor_id == competitor_id)
     if tier is not None:
         stmt = stmt.where(GeoSignal.tier == tier)
+    if signal_type:
+        stmt = stmt.where(GeoSignal.signal_type == signal_type.upper())
     if since:
         try:
             since_dt = datetime.fromisoformat(since)

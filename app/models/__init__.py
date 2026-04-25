@@ -3,6 +3,7 @@ from __future__ import annotations
 from app.models.combo import CompetitorMoleculeAssignment, MoleculePair
 from app.models.competitor import Competitor
 from app.models.data_provenance import DataProvenance
+from app.models.ema_epar import EmaEparEntry, EmaEparRawPoll
 from app.models.email_pref import EmailPreference
 from app.models.event import Event
 from app.models.geo import CompetitorCapability, Country, Region
@@ -22,6 +23,8 @@ __all__ = [
     "CompetitorMoleculeAssignment",
     "Country",
     "DataProvenance",
+    "EmaEparEntry",
+    "EmaEparRawPoll",
     "EmailPreference",
     "Event",
     "GeoSignal",

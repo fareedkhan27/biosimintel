@@ -27,6 +27,7 @@ class SignalType(enum.StrEnum):
     PRESS = "press"
     PRICING = "pricing"
     COMBO = "combo"
+    EMA_EPAR_APPROVAL = "ema_epar_approval"
 
 
 class Confidence(enum.StrEnum):

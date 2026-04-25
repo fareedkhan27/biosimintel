@@ -10,6 +10,13 @@ from app.schemas.combo import (
 )
 from app.schemas.competitor import CompetitorCreate, CompetitorRead
 from app.schemas.data_provenance import DataProvenanceRead
+from app.schemas.ema_epar import (
+    EmaEparEntryCreate,
+    EmaEparEntryResponse,
+    EmaEparPollResult,
+    EmaEparRawPollCreate,
+    EmaEparRawPollResponse,
+)
 from app.schemas.email_pref import (
     EmailPreferenceCreate,
     EmailPreferenceRead,
@@ -70,6 +77,11 @@ __all__ = [
     "CountryRead",
     "CountryUpdate",
     "DataProvenanceRead",
+    "EmaEparEntryCreate",
+    "EmaEparEntryResponse",
+    "EmaEparPollResult",
+    "EmaEparRawPollCreate",
+    "EmaEparRawPollResponse",
     "EmailPreferenceCreate",
     "EmailPreferenceRead",
     "EmailPreferenceUpdate",
