@@ -233,6 +233,40 @@
             </td>
           </tr>
 
+          <!-- Watch List -->
+          <tr>
+            <td style="padding:20px 32px 0;">
+              {% if watch_list %}
+              <div style="background:#F8F9FF; border:1px solid #0563C1; border-radius:8px; padding:16px; margin:16px 0;">
+                <h3 style="color:#0563C1; margin:0 0 12px 0; font-size:14px;">
+                  👁️ WATCH LIST — No Confirmed Nivolumab Activity in Your Markets
+                </h3>
+                <p style="font-size:11px; color:#666; margin:0 0 12px 0;">
+                  These companies are monitored based on industry assumptions, pipeline rumors, or historical biosimilar activity. 
+                  They will be promoted to "Active Threats" if verified clinical, regulatory, or partnership milestones emerge.
+                </p>
+                
+                {% for competitor in watch_list %}
+                <div style="display:flex; align-items:center; gap:8px; padding:6px 0; border-bottom:1px dotted #ddd;">
+                  <span style="font-size:12px; color:#888;">•</span>
+                  <span style="font-size:12px; color:#333;">
+                    <strong>{{ competitor.name }}</strong> — {{ competitor.asset or 'Asset unknown' }}
+                  </span>
+                  <span style="font-size:10px; color:#888; margin-left:auto;">
+                    {{ competitor.stage }} | Monitor
+                  </span>
+                </div>
+                {% endfor %}
+                
+                <p style="font-size:10px; color:#888; margin-top:12px; font-style:italic;">
+                  💡 Tip: If you see press releases or social media about these companies + nivolumab, 
+                  forward to intelligence@biosimintel.com for verification.
+                </p>
+              </div>
+              {% endif %}
+            </td>
+          </tr>
+
           <!-- Combo Threat Corner -->
           <tr>
             <td style="padding:20px 32px 0;">

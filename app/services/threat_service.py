@@ -17,7 +17,7 @@ logger = get_logger(__name__)
 
 STAGE_40_KEYWORDS = ("phase 3", "bla", "prep", "approved", "filing", "launched", "phase_3")
 STAGE_15_KEYWORDS = ("phase 1", "phase 2", "ind", "phase_1", "phase_2", "phase_1_2")
-STAGE_5_KEYWORDS = ("preclinical", "undisclosed", "pipeline", "pre_clinical")
+STAGE_5_KEYWORDS = ("preclinical", "undisclosed", "pipeline", "pre_clinical", "watch", "terminated")
 
 
 def _score_stage(stage: str | None) -> int:
@@ -97,12 +97,17 @@ class GeoThreatScorer:
 
         geo_bonus = 0
         if capability:
-            if capability.has_local_commercial_infrastructure:
-                geo_bonus += 25
-            if capability.has_local_regulatory_filing:
-                geo_bonus += 15
-            if capability.has_local_manufacturing:
-                geo_bonus += 10
+            has_any_infrastructure = (
+                capability.has_local_regulatory_filing
+                or capability.has_local_commercial_infrastructure
+            )
+            if has_any_infrastructure:
+                if capability.has_local_commercial_infrastructure:
+                    geo_bonus += 25
+                if capability.has_local_regulatory_filing:
+                    geo_bonus += 15
+                if capability.has_local_manufacturing:
+                    geo_bonus += 10
 
         combo = _combo_bonus(combo_capability)
 

@@ -26,6 +26,14 @@ COMPETITOR_MATCHES: dict[str, list[str]] = {
     "Reliance Life Sciences": ["Reliance Life Sciences"],
     "Enzene Biosciences": ["Enzene"],
     "NeuClone / Serum Institute": ["NeuClone", "Serum Institute"],
+    "mAbxience": ["mAbxience"],
+    "Mabpharm": ["Mabpharm"],
+    "Dr. Reddy's": ["Dr. Reddy's"],
+    "Lupin": ["Lupin"],
+    "CinnaGen": ["CinnaGen"],
+    "Beacon Medicare": ["Beacon Medicare"],
+    "Farmazona": ["Farmazona"],
+    "Farmacam S.A": ["Farmacam", "Farmacam S.A"],
 }
 
 CAPABILITY_SEED_DATA: dict[str, dict[RegionCode, Any]] = {
@@ -74,22 +82,22 @@ CAPABILITY_SEED_DATA: dict[str, dict[RegionCode, Any]] = {
             "has_local_regulatory_filing": False,
             "has_local_commercial_infrastructure": False,
             "has_local_manufacturing": False,
-            "confidence_score": 20,
-            "source_notes": "No EMA MAA filed. No EU commercial infrastructure.",
+            "confidence_score": 10,
+            "source_notes": "No EMA MAA filed. No EU biosimilar infrastructure. Generic presence ≠ biologics capability.",
         },
         RegionCode.LATAM: {
             "has_local_regulatory_filing": False,
-            "has_local_commercial_infrastructure": True,
+            "has_local_commercial_infrastructure": False,
             "has_local_manufacturing": False,
-            "confidence_score": 60,
-            "source_notes": "Present in LATAM generics. No confirmed biosimilar regulatory filing yet.",
+            "confidence_score": 15,
+            "source_notes": "No ANVISA biosimilar filing. No LATAM clinical trial. Tishtha™ India only.",
         },
         RegionCode.MEA: {
             "has_local_regulatory_filing": False,
-            "has_local_commercial_infrastructure": True,
+            "has_local_commercial_infrastructure": False,
             "has_local_manufacturing": False,
-            "confidence_score": 65,
-            "source_notes": "Strong MEA generic presence. Could file via simplified pathway.",
+            "confidence_score": 15,
+            "source_notes": "No confirmed MEA biosimilar filing.",
         },
     },
     "Shanghai Henlius": {
@@ -118,7 +126,7 @@ CAPABILITY_SEED_DATA: dict[str, dict[RegionCode, Any]] = {
             "has_local_regulatory_filing": False,
             "has_local_commercial_infrastructure": True,
             "has_local_manufacturing": False,
-            "confidence_score": 70,
+            "confidence_score": 75,
             "source_notes": "Intas has EU commercial infrastructure via Accord Healthcare.",
         },
         RegionCode.LATAM: {
@@ -126,12 +134,14 @@ CAPABILITY_SEED_DATA: dict[str, dict[RegionCode, Any]] = {
             "has_local_commercial_infrastructure": True,
             "has_local_manufacturing": False,
             "confidence_score": 60,
+            "source_notes": "Intas has commercial presence in LATAM.",
         },
         RegionCode.MEA: {
             "has_local_regulatory_filing": False,
             "has_local_commercial_infrastructure": True,
             "has_local_manufacturing": False,
             "confidence_score": 55,
+            "source_notes": "Intas has commercial presence in MEA.",
         },
     },
     "Boan Biotech": {
@@ -235,6 +245,189 @@ CAPABILITY_SEED_DATA: dict[str, dict[RegionCode, Any]] = {
             "confidence_score": 5,
         },
     },
+    "mAbxience": {
+        RegionCode.CEE_EU: {
+            "has_local_regulatory_filing": False,
+            "has_local_commercial_infrastructure": False,
+            "has_local_manufacturing": False,
+            "confidence_score": 50,
+            "source_notes": "Phase 3 LEON Study (NCT07221734) recruiting. EU-focused Argentinian company. Potential LATAM entry via regional partnerships.",
+        },
+        RegionCode.LATAM: {
+            "has_local_regulatory_filing": False,
+            "has_local_commercial_infrastructure": False,
+            "has_local_manufacturing": False,
+            "confidence_score": 45,
+            "source_notes": "Argentinian origin. No confirmed ANVISA filing yet but regional proximity.",
+        },
+        RegionCode.MEA: {
+            "has_local_regulatory_filing": False,
+            "has_local_commercial_infrastructure": False,
+            "has_local_manufacturing": False,
+            "confidence_score": 20,
+        },
+    },
+    "Mabpharm": {
+        RegionCode.CEE_EU: {
+            "has_local_regulatory_filing": False,
+            "has_local_commercial_infrastructure": False,
+            "has_local_manufacturing": False,
+            "confidence_score": 5,
+            "source_notes": "Phase 1 terminated. Program likely ended. Retain for completeness.",
+        },
+        RegionCode.LATAM: {
+            "has_local_regulatory_filing": False,
+            "has_local_commercial_infrastructure": False,
+            "has_local_manufacturing": False,
+            "confidence_score": 5,
+            "source_notes": "Phase 1 terminated. Program likely ended. Retain for completeness.",
+        },
+        RegionCode.MEA: {
+            "has_local_regulatory_filing": False,
+            "has_local_commercial_infrastructure": False,
+            "has_local_manufacturing": False,
+            "confidence_score": 5,
+            "source_notes": "Phase 1 terminated. Program likely ended. Retain for completeness.",
+        },
+    },
+    "Dr. Reddy's": {
+        RegionCode.CEE_EU: {
+            "has_local_regulatory_filing": False,
+            "has_local_commercial_infrastructure": False,
+            "has_local_manufacturing": False,
+            "confidence_score": 10,
+            "source_notes": "No confirmed nivolumab program. Has denosumab biosimilar with Alvotech. Monitor pipeline.",
+        },
+        RegionCode.LATAM: {
+            "has_local_regulatory_filing": False,
+            "has_local_commercial_infrastructure": False,
+            "has_local_manufacturing": False,
+            "confidence_score": 10,
+            "source_notes": "No confirmed nivolumab program. Has denosumab biosimilar with Alvotech. Monitor pipeline.",
+        },
+        RegionCode.MEA: {
+            "has_local_regulatory_filing": False,
+            "has_local_commercial_infrastructure": False,
+            "has_local_manufacturing": False,
+            "confidence_score": 10,
+            "source_notes": "No confirmed nivolumab program. Has denosumab biosimilar with Alvotech. Monitor pipeline.",
+        },
+    },
+    "Lupin": {
+        RegionCode.CEE_EU: {
+            "has_local_regulatory_filing": False,
+            "has_local_commercial_infrastructure": False,
+            "has_local_manufacturing": False,
+            "confidence_score": 10,
+            "source_notes": "No confirmed nivolumab program. Major Indian generic player. Monitor.",
+        },
+        RegionCode.LATAM: {
+            "has_local_regulatory_filing": False,
+            "has_local_commercial_infrastructure": False,
+            "has_local_manufacturing": False,
+            "confidence_score": 10,
+            "source_notes": "No confirmed nivolumab program. Major Indian generic player. Monitor.",
+        },
+        RegionCode.MEA: {
+            "has_local_regulatory_filing": False,
+            "has_local_commercial_infrastructure": False,
+            "has_local_manufacturing": False,
+            "confidence_score": 10,
+            "source_notes": "No confirmed nivolumab program. Major Indian generic player. Monitor.",
+        },
+    },
+    "CinnaGen": {
+        RegionCode.CEE_EU: {
+            "has_local_regulatory_filing": False,
+            "has_local_commercial_infrastructure": False,
+            "has_local_manufacturing": False,
+            "confidence_score": 10,
+            "source_notes": "No confirmed nivolumab program. Has teriparatide biosimilar (Zandoriah). Monitor.",
+        },
+        RegionCode.LATAM: {
+            "has_local_regulatory_filing": False,
+            "has_local_commercial_infrastructure": False,
+            "has_local_manufacturing": False,
+            "confidence_score": 10,
+            "source_notes": "No confirmed nivolumab program. Has teriparatide biosimilar (Zandoriah). Monitor.",
+        },
+        RegionCode.MEA: {
+            "has_local_regulatory_filing": False,
+            "has_local_commercial_infrastructure": False,
+            "has_local_manufacturing": False,
+            "confidence_score": 10,
+            "source_notes": "No confirmed nivolumab program. Has teriparatide biosimilar (Zandoriah). Monitor.",
+        },
+    },
+    "Beacon Medicare": {
+        RegionCode.CEE_EU: {
+            "has_local_regulatory_filing": False,
+            "has_local_commercial_infrastructure": False,
+            "has_local_manufacturing": False,
+            "confidence_score": 5,
+            "source_notes": "No confirmed nivolumab program. User assumption. Monitor.",
+        },
+        RegionCode.LATAM: {
+            "has_local_regulatory_filing": False,
+            "has_local_commercial_infrastructure": False,
+            "has_local_manufacturing": False,
+            "confidence_score": 5,
+            "source_notes": "No confirmed nivolumab program. User assumption. Monitor.",
+        },
+        RegionCode.MEA: {
+            "has_local_regulatory_filing": False,
+            "has_local_commercial_infrastructure": False,
+            "has_local_manufacturing": False,
+            "confidence_score": 5,
+            "source_notes": "No confirmed nivolumab program. User assumption. Monitor.",
+        },
+    },
+    "Farmazona": {
+        RegionCode.CEE_EU: {
+            "has_local_regulatory_filing": False,
+            "has_local_commercial_infrastructure": False,
+            "has_local_manufacturing": False,
+            "confidence_score": 0,
+            "source_notes": "Not relevant. LATAM-only assumption.",
+        },
+        RegionCode.LATAM: {
+            "has_local_regulatory_filing": False,
+            "has_local_commercial_infrastructure": False,
+            "has_local_manufacturing": False,
+            "confidence_score": 5,
+            "source_notes": "No confirmed nivolumab program. Likely local LATAM distributor. User assumption. Monitor.",
+        },
+        RegionCode.MEA: {
+            "has_local_regulatory_filing": False,
+            "has_local_commercial_infrastructure": False,
+            "has_local_manufacturing": False,
+            "confidence_score": 0,
+            "source_notes": "Not relevant. LATAM-only assumption.",
+        },
+    },
+    "Farmacam S.A": {
+        RegionCode.CEE_EU: {
+            "has_local_regulatory_filing": False,
+            "has_local_commercial_infrastructure": False,
+            "has_local_manufacturing": False,
+            "confidence_score": 0,
+            "source_notes": "Not relevant. LATAM-only assumption.",
+        },
+        RegionCode.LATAM: {
+            "has_local_regulatory_filing": False,
+            "has_local_commercial_infrastructure": False,
+            "has_local_manufacturing": False,
+            "confidence_score": 5,
+            "source_notes": "No confirmed nivolumab program. Likely local LATAM distributor. User assumption. Monitor.",
+        },
+        RegionCode.MEA: {
+            "has_local_regulatory_filing": False,
+            "has_local_commercial_infrastructure": False,
+            "has_local_manufacturing": False,
+            "confidence_score": 0,
+            "source_notes": "Not relevant. LATAM-only assumption.",
+        },
+    },
 }
 
 
@@ -268,7 +461,7 @@ async def _find_competitor(db: AsyncSession, display_name: str) -> Competitor | 
 
 
 async def seed_capabilities(db: AsyncSession) -> int:
-    """Seed competitor capabilities. Returns number of rows inserted."""
+    """Seed competitor capabilities. Returns number of rows inserted/updated."""
     # Build region lookup
     region_result = await db.execute(select(Region))
     region_map: dict[RegionCode, str] = {}
@@ -276,7 +469,7 @@ async def seed_capabilities(db: AsyncSession) -> int:
         code: RegionCode = region.code  # type: ignore[assignment]
         region_map[code] = str(region.id)
 
-    inserted = 0
+    upserted = 0
     for display_name, region_data in CAPABILITY_SEED_DATA.items():
         competitor = await _find_competitor(db, display_name)
         if competitor is None:
@@ -288,30 +481,36 @@ async def seed_capabilities(db: AsyncSession) -> int:
                 logger.warning("Region not found", region_code=region_code.value)
                 continue
 
-            # Check for existing row manually since there is no unique constraint
-            existing = await db.execute(
+            # Check for existing row
+            existing_result = await db.execute(
                 select(CompetitorCapability).where(
                     CompetitorCapability.competitor_id == competitor.id,
                     CompetitorCapability.region_id == region_id,
                 )
             )
-            if existing.scalar_one_or_none() is not None:
-                continue
+            existing = existing_result.scalar_one_or_none()
 
-            stmt = (
-                pg_insert(CompetitorCapability)
-                .values(
-                    competitor_id=competitor.id,
-                    region_id=region_id,
-                    **fields,
+            if existing is not None:
+                # Update existing
+                for key, value in fields.items():
+                    setattr(existing, key, value)
+                upserted += 1
+            else:
+                # Insert new
+                stmt = (
+                    pg_insert(CompetitorCapability)
+                    .values(
+                        competitor_id=competitor.id,
+                        region_id=region_id,
+                        **fields,
+                    )
                 )
-            )
-            await db.execute(stmt)
-            inserted += 1
+                await db.execute(stmt)
+                upserted += 1
 
     await db.commit()
-    logger.info("Competitor capabilities seeded", inserted=inserted)
-    return inserted
+    logger.info("Competitor capabilities seeded", upserted=upserted)
+    return upserted
 
 
 async def main() -> None:

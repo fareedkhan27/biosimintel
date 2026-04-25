@@ -86,6 +86,62 @@ COMPETITOR_ASSIGNMENTS: list[dict[str, Any]] = [
         "combo_capability": ComboCapability.NONE,
         "is_primary_focus": False,
     },
+    {
+        "search_name": "mAbxience",
+        "nivolumab_asset": "MB11",
+        "ipilimumab_asset": None,
+        "combo_capability": ComboCapability.NONE,
+        "is_primary_focus": True,
+    },
+    {
+        "search_name": "Mabpharm",
+        "nivolumab_asset": "CMAB 819",
+        "ipilimumab_asset": None,
+        "combo_capability": ComboCapability.NONE,
+        "is_primary_focus": False,
+    },
+    {
+        "search_name": "Dr. Reddy's",
+        "nivolumab_asset": "None known",
+        "ipilimumab_asset": None,
+        "combo_capability": ComboCapability.NONE,
+        "is_primary_focus": False,
+    },
+    {
+        "search_name": "Lupin",
+        "nivolumab_asset": "None known",
+        "ipilimumab_asset": None,
+        "combo_capability": ComboCapability.NONE,
+        "is_primary_focus": False,
+    },
+    {
+        "search_name": "CinnaGen",
+        "nivolumab_asset": "None known",
+        "ipilimumab_asset": None,
+        "combo_capability": ComboCapability.NONE,
+        "is_primary_focus": False,
+    },
+    {
+        "search_name": "Beacon Medicare",
+        "nivolumab_asset": "None known",
+        "ipilimumab_asset": None,
+        "combo_capability": ComboCapability.NONE,
+        "is_primary_focus": False,
+    },
+    {
+        "search_name": "Farmazona",
+        "nivolumab_asset": "None known",
+        "ipilimumab_asset": None,
+        "combo_capability": ComboCapability.NONE,
+        "is_primary_focus": False,
+    },
+    {
+        "search_name": "Farmacam S.A",
+        "nivolumab_asset": "None known",
+        "ipilimumab_asset": None,
+        "combo_capability": ComboCapability.NONE,
+        "is_primary_focus": False,
+    },
 ]
 
 

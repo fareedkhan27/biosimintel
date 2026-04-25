@@ -58,6 +58,15 @@ _REGION_CODES: dict[EmailRegionFilter, str] = {
 }
 
 
+_WATCH_STAGES = {"watch", "preclinical", "pre_clinical", "terminated"}
+
+
+def _is_watch_stage(stage: str | None) -> bool:
+    if not stage:
+        return False
+    return stage.lower() in _WATCH_STAGES
+
+
 def _derive_rationale(stage: str | None) -> str:
     if not stage:
         return "→ Development status unknown"
@@ -139,8 +148,9 @@ class EmailV2Service:
         tier2 = [s for s in filtered if s.tier == 2][:5]
         tier3 = [s for s in filtered if s.tier == 3][:3]
 
-        # Country threat cards
+        # Country threat cards + watch list
         country_threat_cards: list[dict[str, Any]] = []
+        watch_list_by_name: dict[str, dict[str, Any]] = {}
         async with AsyncSessionLocal() as db:
             # Filter to user's regions
             target_region_ids: set[UUID] = set()
@@ -161,27 +171,55 @@ class EmailV2Service:
                 )
                 countries = list(countries_result.scalars().all())
 
+                # Collect summaries first
+                country_summaries: list[tuple[Country, dict[str, Any]]] = []
                 for country in countries:
                     summary = await self.threat_svc.get_country_threat_summary(cast(str, country.code))
-                    threats = [
-                        {
-                            "competitor": c["competitor_name"],
-                            "asset": c["asset_name"] or "Unknown",
-                            "stage": c["development_stage"] or "Unknown",
-                            "score": c["relevance_score"],
-                            "threat_level": c["threat_level"],
-                            "color": {
-                                "HIGH": "red",
-                                "MEDIUM": "amber",
-                                "LOW": "green",
-                            }.get(c["threat_level"], "green"),
-                            "rationale": _derive_rationale(c["development_stage"]),
-                        }
-                        for c in summary["competitors"]
-                        if c["relevance_score"] >= 30
-                    ]
-                    threats.sort(key=lambda x: x["score"], reverse=True)
-                    top_threats = threats[:3]
+                    country_summaries.append((country, summary))
+
+                # First pass: identify competitors that are active in ANY country
+                active_names: set[str] = set()
+                for _country, summary in country_summaries:
+                    for c in summary["competitors"]:
+                        score = c["relevance_score"]
+                        stage = c["development_stage"] or ""
+                        if not _is_watch_stage(stage) and score >= 50:
+                            active_names.add(c["competitor_name"])
+
+                # Second pass: build country cards and watch list
+                for country, summary in country_summaries:
+                    active_threats: list[dict[str, Any]] = []
+
+                    for c in summary["competitors"]:
+                        score = c["relevance_score"]
+                        stage = c["development_stage"] or ""
+                        name = c["competitor_name"]
+
+                        if name in active_names and not _is_watch_stage(stage) and score >= 50:
+                            active_threats.append({
+                                "competitor": name,
+                                "asset": c["asset_name"] or "Unknown",
+                                "stage": stage or "Unknown",
+                                "score": score,
+                                "threat_level": c["threat_level"],
+                                "color": {
+                                    "HIGH": "red",
+                                    "MEDIUM": "amber",
+                                    "LOW": "green",
+                                }.get(c["threat_level"], "green"),
+                                "rationale": _derive_rationale(stage),
+                            })
+                        elif name not in active_names and name not in watch_list_by_name:
+                            # Competitor is never active anywhere → watch list
+                            watch_list_by_name[name] = {
+                                "name": name,
+                                "asset": c["asset_name"] or "Unknown",
+                                "stage": stage or "Unknown",
+                                "score": score,
+                            }
+
+                    active_threats.sort(key=lambda x: x["score"], reverse=True)
+                    top_threats = active_threats[:3]
 
                     country_threat_cards.append({
                         "flag": "🌍",
@@ -192,6 +230,8 @@ class EmailV2Service:
                         "threats": top_threats,
                         "threat_count": len(top_threats),
                     })
+
+        watch_list = sorted(watch_list_by_name.values(), key=lambda x: x["name"])
 
         # Combo threat corner
         combo_threat_level = "LOW"
@@ -221,6 +261,7 @@ class EmailV2Service:
             tier2_signals=tier2,
             tier3_signals=tier3,
             country_threat_cards=country_threat_cards,
+            watch_list=watch_list,
             combo_threat_level=combo_threat_level,
             combo_threat_detail=combo_threat_detail,
             year=datetime.now(UTC).year,
