@@ -13,6 +13,7 @@ from app.models.molecule import Molecule
 from app.models.noise import NoiseSignal
 from app.models.openfda import OpenfdaEntry, OpenfdaRawPoll
 from app.models.patent_cliff import PatentCliff
+from app.models.pubmed import PubmedEntry, PubmedRawPoll
 from app.models.review import Review
 from app.models.scoring_rule import ScoringRule
 from app.models.signal import GeoSignal
@@ -37,6 +38,8 @@ __all__ = [
     "OpenfdaEntry",
     "OpenfdaRawPoll",
     "PatentCliff",
+    "PubmedEntry",
+    "PubmedRawPoll",
     "Region",
     "Review",
     "ScoringRule",

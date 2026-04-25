@@ -39,6 +39,12 @@ class Settings(BaseSettings):
     OPENFDA_API_BASE_URL: str = "https://api.fda.gov"
     OPENFDA_POLL_HOUR_UTC: int = 7
 
+    PUBMED_ENABLED: bool = True
+    PUBMED_API_BASE_URL: str = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils"
+    PUBMED_API_KEY: str = ""
+    PUBMED_POLL_DAY: str = "monday"
+    PUBMED_LOOKBACK_DAYS: int = 14
+
     SMTP_HOST: str = ""
     SMTP_PORT: int = 587
     SMTP_USER: str = ""

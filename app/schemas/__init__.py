@@ -53,6 +53,13 @@ from app.schemas.llm_insights import InsightResult
 from app.schemas.molecule import MoleculeCreate, MoleculeRead, MoleculeUpdate
 from app.schemas.noise import NoiseSignalCreate, NoiseSignalRead, NoiseSignalUpdate
 from app.schemas.predictive_timeline import LaunchEstimate, LaunchTimeline
+from app.schemas.pubmed import (
+    PubmedEntryCreate,
+    PubmedEntryResponse,
+    PubmedPollResult,
+    PubmedRawPollCreate,
+    PubmedRawPollResponse,
+)
 from app.schemas.regulatory_risk import PatentCliffEntry, RegulatoryRiskProfile
 from app.schemas.signal import GeoSignalCreate, GeoSignalRead, GeoSignalUpdate
 from app.schemas.source_document import SourceDocumentCreate, SourceDocumentRead
@@ -109,6 +116,11 @@ __all__ = [
     "NoiseSignalRead",
     "NoiseSignalUpdate",
     "PatentCliffEntry",
+    "PubmedEntryCreate",
+    "PubmedEntryResponse",
+    "PubmedPollResult",
+    "PubmedRawPollCreate",
+    "PubmedRawPollResponse",
     "RegionCreate",
     "RegionRead",
     "RegionUpdate",

@@ -31,6 +31,10 @@ class SignalType(enum.StrEnum):
     FDA_BIOSIMILAR_APPROVAL = "fda_biosimilar_approval"
     FDA_LABEL_UPDATE = "fda_label_update"
     FDA_PENDING_APPROVAL = "fda_pending_approval"
+    PUBLICATION_PHASE3 = "publication_phase3"
+    PUBLICATION_SAFETY = "publication_safety"
+    PUBLICATION_RWE = "publication_rwe"
+    PUBLICATION_GENERAL = "publication_general"
 
 
 class Confidence(enum.StrEnum):
