@@ -1,0 +1,16 @@
+Collecting resend
+  Downloading resend-2.29.0-py2.py3-none-any.whl.metadata (3.5 kB)
+Collecting requests>=2.31.0 (from resend)
+  Downloading requests-2.33.1-py3-none-any.whl.metadata (4.8 kB)
+Requirement already satisfied: typing-extensions>=4.4.0 in ./.venv/lib/python3.12/site-packages (from resend) (4.15.0)
+Collecting charset_normalizer<4,>=2 (from requests>=2.31.0->resend)
+  Downloading charset_normalizer-3.4.7-cp312-cp312-macosx_10_13_universal2.whl.metadata (40 kB)
+Requirement already satisfied: idna<4,>=2.5 in ./.venv/lib/python3.12/site-packages (from requests>=2.31.0->resend) (3.12)
+Requirement already satisfied: urllib3<3,>=1.26 in ./.venv/lib/python3.12/site-packages (from requests>=2.31.0->resend) (2.6.3)
+Requirement already satisfied: certifi>=2023.5.7 in ./.venv/lib/python3.12/site-packages (from requests>=2.31.0->resend) (2026.2.25)
+Downloading resend-2.29.0-py2.py3-none-any.whl (68 kB)
+Downloading requests-2.33.1-py3-none-any.whl (64 kB)
+Downloading charset_normalizer-3.4.7-cp312-cp312-macosx_10_13_universal2.whl (311 kB)
+Installing collected packages: charset_normalizer, requests, resend
+
+Successfully installed charset_normalizer-3.4.7 requests-2.33.1 resend-2.29.0

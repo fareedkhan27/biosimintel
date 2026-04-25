@@ -43,7 +43,11 @@ class Settings(BaseSettings):
     EXECUTIVE_EMAIL: str = "exec-team@example.com"
     DEFAULT_FROM_EMAIL: str = "intelligence@biosimintel.com"
 
+    BRIEFING_RECIPIENT: str = ""
+    BRIEFING_CC: str = ""
+
     SENTRY_DSN: str = ""
+    RESEND_API_KEY: str = ""
 
 
 settings = Settings()

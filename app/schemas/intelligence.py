@@ -53,6 +53,7 @@ class EmailBriefingRequest(BaseModel):
     format: str = "html"  # "html" or "json"
     since_days: int = 7
     bypass_preferences: bool = False
+    recipients: list[EmailStr] | None = None
 
 
 class BriefingTriggerRequest(BaseModel):
@@ -67,6 +68,7 @@ class EmailBriefingResponse(BaseModel):
     json_payload: dict[str, Any] | None = None
     subject: str
     recipient: str
+    cc: str | None = None
     from_email: str
     event_count: int
     region: str | None = None

@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any
 from uuid import UUID
 
+import resend
 from jinja2 import ChoiceLoader, Environment, FileSystemLoader, select_autoescape
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -491,6 +492,15 @@ class IntelligenceService:
             region_email = _resolve_region_email(top_event.country, top_event.region)  # type: ignore[arg-type]
             region_label = str(top_event.country or top_event.region or "Global")
 
+        if payload.recipients:
+            effective_recipient = ", ".join(payload.recipients)
+        elif settings.BRIEFING_RECIPIENT:
+            effective_recipient = settings.BRIEFING_RECIPIENT
+        else:
+            effective_recipient = region_email
+
+        effective_cc = settings.BRIEFING_CC or None
+
         # Build context for template
         event_cards: list[dict[str, Any]] = []
         milestones: list[dict[str, Any]] = []
@@ -616,14 +626,39 @@ class IntelligenceService:
                 molecule_id=str(payload.molecule_id),
                 insights=llm_narrative.key_insights,
             )
-            return EmailBriefingResponse(
+            response = EmailBriefingResponse(
                 html=html,
                 subject=subject,
-                recipient=region_email,
+                recipient=effective_recipient,
+                cc=effective_cc,
                 from_email=settings.DEFAULT_FROM_EMAIL,
                 event_count=len(events),
                 region=region_label,
             )
+
+            # Send via Resend
+            resend.api_key = settings.RESEND_API_KEY
+
+            email_params: dict[str, Any] = {
+                "from": response.from_email,
+                "to": [addr.strip() for addr in response.recipient.split(",") if addr.strip()],
+                "subject": response.subject,
+                "html": html,
+                "headers": {
+                    "List-Unsubscribe": "<mailto:unsubscribe@biosimintel.com?subject=unsubscribe>",
+                    "Precedence": "bulk",
+                },
+            }
+
+            if response.cc:
+                email_params["cc"] = [response.cc]
+
+            try:
+                await resend.Emails.send_async(email_params)  # type: ignore[arg-type]
+            except Exception as e:
+                logger.error(f"Resend send failed: {e}")
+
+            return response
 
         # JSON format
         return EmailBriefingResponse(
@@ -645,7 +680,8 @@ class IntelligenceService:
                 "patent_cliffs": [p.model_dump(mode="json") for p in risk_profile.patent_cliffs],
             },
             subject=subject,
-            recipient=region_email,
+            recipient=effective_recipient,
+            cc=effective_cc,
             from_email=settings.DEFAULT_FROM_EMAIL,
             event_count=len(events),
             region=region_label,

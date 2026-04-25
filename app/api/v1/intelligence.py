@@ -206,12 +206,13 @@ async def trigger_on_demand_briefing(
         format="html",
         since_days=request.since_days,
         bypass_preferences=True,
+        recipients=[request.recipient],
     )
 
     service = IntelligenceService()
     response = await service.generate_email_briefing(payload, db)
 
-    # Override recipient if provided
+    # Override recipient for JSON response consistency
     response.recipient = request.recipient
 
     # Update last_briefing_sent_at
