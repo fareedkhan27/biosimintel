@@ -1,13 +1,20 @@
 """Trigger ClinicalTrials.gov ingestion for Phase 4C molecules."""
+# ruff: noqa: E402
 from __future__ import annotations
 
-import asyncio
 import sys
+from pathlib import Path
+
+# Bootstrap: ensure /app is on sys.path so 'app' imports resolve
+# when script is executed directly inside Docker/Railway
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent
+if str(_PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(_PROJECT_ROOT))
+
+import asyncio
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-
-sys.path.insert(0, "/Users/fareedkhan/Dev/Biosim")
 
 from app.core.logging import configure_logging, get_logger
 from app.db.session import AsyncSessionLocal
