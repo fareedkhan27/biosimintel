@@ -258,8 +258,13 @@
                   <div class="rationale">{{ threat.rationale }}</div>
                   <div class="affected-countries">
                     <strong>Affected countries:</strong>
-                    {% if threat.affected_countries|length > 6 %}
-                      {{ threat.affected_countries[:6] | join(", ") }} +{{ threat.affected_countries|length - 6 }} more
+                    {% if threat.affected_countries|length > 15 %}
+                      {{ threat.affected_countries[:12] | join(", ") }}
+                      {% if threat.competitor_id %}
+                        <a href="https://api.biosimintel.com/dashboard/competitors/{{ threat.competitor_id }}" style="color:#0563C1;text-decoration:none;">+{{ threat.affected_countries|length - 12 }} more countries →</a>
+                      {% else %}
+                        +{{ threat.affected_countries|length - 12 }} more countries
+                      {% endif %}
                     {% else %}
                       {{ threat.affected_countries | join(", ") }}
                     {% endif %}
@@ -267,10 +272,10 @@
                   <div class="source-links">
                     <strong>Sources:</strong>
                     {% for link in threat.source_links %}
-                      {% if link.url %}
+                      {% if link.url and link.url.startswith("http") %}
                         <a href="{{ link.url }}" class="source-link">{{ link.label }}</a>
                       {% else %}
-                        <span class="source-link" style="color:#888;">{{ link.label }}</span>
+                        <span class="source-link" style="color:#888;font-style:italic;">🔍 Monitoring — No public source yet</span>
                       {% endif %}
                     {% endfor %}
                   </div>
@@ -336,13 +341,44 @@
             </td>
           </tr>
 
+          <!-- Watch List -->
+          <tr>
+            <td style="padding:20px 32px 0;">
+              {% if watch_list %}
+              <div style="background:#F8F9FF; border:1px solid #9CA3AF; border-radius:8px; padding:16px; margin:16px 0;">
+                <h3 style="color:#6B7280; margin:0 0 12px 0; font-size:14px;">
+                  🔍 WATCH LIST — No Confirmed {{ region_name }} Activity
+                </h3>
+                <p style="font-size:11px; color:#666; margin:0 0 12px 0;">
+                  These competitors have active programs elsewhere but no confirmed filings, partnerships, or commercial infrastructure in {{ region_name }} yet. They will be promoted to "Global Threats" if verified regional milestones emerge.
+                </p>
+                
+                {% for competitor in watch_list %}
+                <div style="display:flex; align-items:center; gap:8px; padding:6px 0; border-bottom:1px dotted #ddd;">
+                  <span style="font-size:12px; color:#888;">•</span>
+                  <span style="font-size:12px; color:#333;">
+                    <strong>{{ competitor.name }}</strong> — {{ competitor.product_code or 'Asset unknown' }}
+                  </span>
+                  <span style="font-size:10px; color:#888; margin-left:auto;">
+                    {{ competitor.stage }} | Monitor
+                  </span>
+                </div>
+                {% endfor %}
+                
+                <p style="font-size:10px; color:#888; margin-top:12px; font-style:italic;">
+                  💡 Tip: If you see press releases or social media about these companies + your region, forward to intelligence@biosimintel.com for verification.
+                </p>
+              </div>
+              {% endif %}
+            </td>
+          </tr>
+
           <!-- Data Sources Footer -->
           <tr>
             <td style="padding:20px 32px 0;">
               <div class="footer-box">
                 <strong>Data Sources & Verification:</strong><br>
                 • ClinicalTrials.gov v2 API — Daily poll | <a href="https://clinicaltrials.gov/data-api/api" style="color:#0563C1;">API Docs</a><br>
-                • SEC EDGAR — Daily full-text search | <a href="https://www.sec.gov/edgar/search/" style="color:#0563C1;">Search Portal</a><br>
                 • EMA EPAR — Planned for automated integration Q2 2026<br>
                 • openFDA — Planned for automated integration Q2 2026<br>
                 • PubMed / NCBI Entrez — Planned for automated integration Q2 2026<br>

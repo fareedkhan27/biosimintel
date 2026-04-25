@@ -20,7 +20,7 @@ from app.models.email_pref import (
     EmailRegionFilter,
 )
 from app.models.event import Event
-from app.models.geo import Country, Region
+from app.models.geo import CompetitorCapability, Country, Region
 from app.models.molecule import Molecule
 from app.models.sec_filing import SecFiling
 from app.models.signal import GeoSignal, SignalType
@@ -86,6 +86,23 @@ _COUNTRY_FLAGS: dict[str, str] = {
     "ZA": "🇿🇦", "KR": "🇰🇷", "TR": "🇹🇷", "AE": "🇦🇪", "UY": "🇺🇾",
     "VE": "🇻🇪", "VN": "🇻🇳", "ZW": "🇿🇼",
 }
+
+_GLOBAL_PROGRAMS: set[str] = {"Amgen", "Sandoz"}
+_SEC_PATTERNS: tuple[str, ...] = ("sec.gov", "edgar", "sec_edgar", "sec_filing")
+
+
+def _is_global_program(competitor_name: str) -> bool:
+    return competitor_name in _GLOBAL_PROGRAMS
+
+
+def _has_meaningful_regional_presence(capability: Any) -> bool:
+    if capability is None:
+        return False
+    return bool(
+        capability.confidence_score >= 50
+        or capability.has_local_regulatory_filing
+        or capability.has_local_commercial_infrastructure
+    )
 
 
 def _is_watch_stage(stage: str | None) -> bool:
@@ -218,18 +235,45 @@ async def _build_competitor_source_links(competitor_id: UUID, db: AsyncSession) 
     return sources
 
 
-def _format_source_links(sources: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Transform internal source format to template-ready label/url dicts, deduped by URL."""
+def _format_source_links(
+    sources: list[dict[str, Any]],
+    exclude_patterns: tuple[str, ...] | None = None,
+    competitor_name: str = "",
+) -> list[dict[str, Any]]:
+    """Transform internal source format to template-ready label/url dicts, deduped by URL.
+
+    - Excludes sources matching exclude_patterns (e.g., SEC EDGAR for daily pulse).
+    - Replaces dead/missing URLs with a monitoring placeholder and logs a warning.
+    """
     out: list[dict[str, Any]] = []
     seen: set[str] = set()
+    exclude_patterns = exclude_patterns or ()
+
     for s in sources:
+        name = s.get("name", "")
         url = s.get("url")
+
+        # Exclude SEC / unwanted patterns
+        if any(pat in name.lower() or (url and pat in url.lower()) for pat in exclude_patterns):
+            continue
+
         if url:
             if url in seen:
                 continue
             seen.add(url)
-        label = f"{s['name']} {s['id'] or ''}".strip()
-        out.append({"label": label, "url": url})
+
+        label = f"{name} {s.get('id') or ''}".strip()
+
+        if not url or not str(url).startswith("http"):
+            logger.warning(
+                "Competitor source link has no public URL",
+                competitor=competitor_name,
+                source_name=name,
+            )
+            out.append({"label": label, "url": None, "is_dead": True})
+        else:
+            out.append({"label": label, "url": url, "is_dead": False})
+
     return out
 
 
@@ -317,8 +361,9 @@ class EmailV2Service:
                 )
                 countries = list(countries_result.scalars().all())
 
-            # --- GLOBAL THREATS ---
+            # --- GLOBAL THREATS & WATCH LIST ---
             global_threats: list[dict[str, Any]] = []
+            watch_list: list[dict[str, Any]] = []
             if monitored_mol_ids:
                 assignments_result = await db.execute(
                     select(CompetitorMoleculeAssignment, Competitor)
@@ -332,6 +377,31 @@ class EmailV2Service:
                 for assignment, competitor in assignment_rows:
                     cid = cast(UUID, competitor.id)
                     competitor_assignments[cid] = (assignment, competitor)
+
+                # Load regional capabilities for all relevant competitors
+                competitor_ids = list(competitor_assignments.keys())
+                capabilities_result = await db.execute(
+                    select(CompetitorCapability)
+                    .where(CompetitorCapability.competitor_id.in_(competitor_ids))
+                    .where(CompetitorCapability.region_id.in_(target_region_ids))
+                )
+                capabilities: dict[UUID, Any] = {}
+                for cap in capabilities_result.scalars().all():
+                    cid = cast(UUID, cap.competitor_id)
+                    # Keep the highest-confidence capability per competitor
+                    if cid not in capabilities or cap.confidence_score > capabilities[cid].confidence_score:
+                        capabilities[cid] = cap
+
+                # Check for recent regional signals per competitor
+                signal_result = await db.execute(
+                    select(GeoSignal)
+                    .where(GeoSignal.created_at >= since)
+                    .where(GeoSignal.competitor_id.in_(competitor_ids))
+                    .where(GeoSignal.region_id.in_(target_region_ids))
+                )
+                competitors_with_regional_signals: set[UUID] = {
+                    cast(UUID, s.competitor_id) for s in signal_result.scalars().all() if s.competitor_id
+                }
 
                 # Collect country summaries (reuses existing efficient query pattern)
                 country_summaries: list[tuple[Country, dict[str, Any]]] = []
@@ -352,39 +422,59 @@ class EmailV2Service:
                             competitor_countries[cid] = []
                         competitor_countries[cid].append((cast(str, country.name), score))
 
-                # Pre-load source links for active competitors
-                active_competitor_ids = set(competitor_countries.keys())
+                # Pre-load source links for all assignment competitors
                 competitor_sources: dict[UUID, list[dict[str, Any]]] = {}
-                for cid in active_competitor_ids:
+                for cid in competitor_ids:
                     competitor_sources[cid] = await _build_competitor_source_links(cid, db)
 
                 for cid, (assignment, competitor) in competitor_assignments.items():
-                    if cid not in competitor_countries:
-                        continue
                     stage = cast(str | None, assignment.development_stage) or cast(
                         str | None, competitor.development_stage
                     )
-                    affected = competitor_countries[cid]
-                    max_score = max(score for _name, score in affected)
-                    relevance_label = (
-                        "HIGH" if max_score >= 75 else "MEDIUM" if max_score >= 50 else "LOW"
-                    )
-                    sources = competitor_sources.get(cid, [])
-                    source_links = _format_source_links(sources)
+                    name = cast(str, competitor.canonical_name)
+                    is_global = _is_global_program(name)
+                    has_presence = _has_meaningful_regional_presence(capabilities.get(cid))
+                    has_signals = cid in competitors_with_regional_signals
+                    is_in_region = cid in competitor_countries
 
-                    global_threats.append({
-                        "competitor_name": competitor.canonical_name,
-                        "product_code": assignment.asset_name or competitor.asset_code or "Unknown",
-                        "development_stage": stage or "Unknown",
-                        "relevance_score": max_score,
-                        "relevance_label": relevance_label,
-                        "rationale": _derive_rationale(stage),
-                        "affected_countries": [name for name, _score in affected],
-                        "source_links": source_links,
-                        "verified_date": datetime.now(UTC).strftime("%Y-%m-%d"),
-                    })
+                    # Include in Global Threats if: global program, meaningful presence, or regional signals
+                    include_in_global = is_global or has_presence or has_signals
+
+                    if include_in_global and is_in_region:
+                        affected = competitor_countries[cid]
+                        max_score = max(score for _name, score in affected)
+                        relevance_label = (
+                            "HIGH" if max_score >= 75 else "MEDIUM" if max_score >= 50 else "LOW"
+                        )
+                        sources = competitor_sources.get(cid, [])
+                        source_links = _format_source_links(
+                            sources,
+                            exclude_patterns=_SEC_PATTERNS,
+                            competitor_name=name,
+                        )
+
+                        global_threats.append({
+                            "competitor_name": name,
+                            "product_code": assignment.asset_name or competitor.asset_code or "Unknown",
+                            "development_stage": stage or "Unknown",
+                            "relevance_score": max_score,
+                            "relevance_label": relevance_label,
+                            "rationale": _derive_rationale(stage),
+                            "affected_countries": [name for name, _score in affected],
+                            "source_links": source_links,
+                            "verified_date": datetime.now(UTC).strftime("%Y-%m-%d"),
+                            "competitor_id": str(cid),
+                        })
+                    elif not _is_watch_stage(stage):
+                        # Watch list: competitors active elsewhere but not meaningfully in this region
+                        watch_list.append({
+                            "name": name,
+                            "product_code": assignment.asset_name or competitor.asset_code or "Unknown",
+                            "stage": stage or "Unknown",
+                        })
 
                 global_threats.sort(key=lambda x: x["relevance_score"], reverse=True)
+                watch_list.sort(key=lambda x: x["name"])
 
             # --- COUNTRY-SPECIFIC ALERTS ---
             all_signals: list[GeoSignal] = []
@@ -497,8 +587,9 @@ class EmailV2Service:
             report_date=datetime.now(UTC).strftime("%Y-%m-%d"),
             global_threats=global_threats,
             country_alerts=country_alerts,
+            watch_list=watch_list,
             methodology_note=(
-                "Intelligence is sourced from ClinicalTrials.gov, SEC EDGAR, EMA EPAR, and company disclosures. "
+                "Intelligence is sourced from ClinicalTrials.gov, EMA EPAR, and company disclosures. "
                 "Each signal is geo-tagged to your markets based on competitor capability and regional relevance. "
                 "Relevance scores (0-100) reflect development stage x geo-proximity x combo capability."
             ),
