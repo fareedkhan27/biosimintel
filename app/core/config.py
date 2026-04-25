@@ -35,6 +35,10 @@ class Settings(BaseSettings):
     EMA_EPAR_ENDPOINT: str = "https://www.ema.europa.eu/en/medicines"
     EMA_EPAR_POLL_HOUR_UTC: int = 6
 
+    OPENFDA_ENABLED: bool = True
+    OPENFDA_API_BASE_URL: str = "https://api.fda.gov"
+    OPENFDA_POLL_HOUR_UTC: int = 7
+
     SMTP_HOST: str = ""
     SMTP_PORT: int = 587
     SMTP_USER: str = ""

@@ -11,6 +11,7 @@ from app.models.intelligence_baseline import IntelligenceBaseline
 from app.models.llm_insight_cache import LlmInsightCache
 from app.models.molecule import Molecule
 from app.models.noise import NoiseSignal
+from app.models.openfda import OpenfdaEntry, OpenfdaRawPoll
 from app.models.patent_cliff import PatentCliff
 from app.models.review import Review
 from app.models.scoring_rule import ScoringRule
@@ -33,6 +34,8 @@ __all__ = [
     "Molecule",
     "MoleculePair",
     "NoiseSignal",
+    "OpenfdaEntry",
+    "OpenfdaRawPoll",
     "PatentCliff",
     "Region",
     "Review",

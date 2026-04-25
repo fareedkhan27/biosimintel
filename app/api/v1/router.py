@@ -15,6 +15,7 @@ from app.api.v1 import (
     jobs,
     molecules,
     noise,
+    openfda,
     sec_filings,
     threat_matrix,
     timeline,
@@ -39,3 +40,4 @@ api_router.include_router(webhooks.router, prefix="/webhooks", tags=["webhooks"]
 api_router.include_router(sec_filings.router, tags=["sec-edgar"])
 api_router.include_router(threat_matrix.router, prefix="/threat-matrix", tags=["threat-matrix"])
 api_router.include_router(ema_epar.router, tags=["ema-epar"])
+api_router.include_router(openfda.router, tags=["openfda"])

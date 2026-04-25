@@ -28,6 +28,9 @@ class SignalType(enum.StrEnum):
     PRICING = "pricing"
     COMBO = "combo"
     EMA_EPAR_APPROVAL = "ema_epar_approval"
+    FDA_BIOSIMILAR_APPROVAL = "fda_biosimilar_approval"
+    FDA_LABEL_UPDATE = "fda_label_update"
+    FDA_PENDING_APPROVAL = "fda_pending_approval"
 
 
 class Confidence(enum.StrEnum):
