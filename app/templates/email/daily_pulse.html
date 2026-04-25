@@ -4,6 +4,92 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>BIOSIM Daily Pulse</title>
+  <style>
+    .country-threat-card {
+      background: #fff;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      margin: 12px 0;
+      padding: 16px;
+    }
+    .country-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid #7030A0;
+    }
+    .country-name {
+      font-weight: bold;
+      font-size: 14px;
+      color: #333;
+    }
+    .op-model {
+      font-size: 11px;
+      padding: 2px 8px;
+      background: #f0f0f0;
+      border-radius: 4px;
+      color: #666;
+    }
+    .threat-count {
+      margin-left: auto;
+      font-size: 12px;
+      font-weight: bold;
+      color: #7030A0;
+    }
+    .threat-item {
+      margin: 8px 0;
+      padding: 10px;
+      background: #fafafa;
+      border-radius: 6px;
+      border-left: 4px solid #ccc;
+    }
+    .threat-item.high { border-left-color: #FF0000; }
+    .threat-item.medium { border-left-color: #FFC000; }
+    .threat-item.low { border-left-color: #00B050; }
+    .threat-bar {
+      height: 4px;
+      background: #e0e0e0;
+      border-radius: 2px;
+      margin-bottom: 8px;
+    }
+    .threat-fill {
+      height: 100%;
+      background: #7030A0;
+      border-radius: 2px;
+    }
+    .threat-details strong {
+      display: block;
+      font-size: 13px;
+      color: #333;
+    }
+    .threat-details .stage {
+      font-size: 11px;
+      color: #666;
+      display: block;
+    }
+    .threat-details .score {
+      font-size: 11px;
+      color: #7030A0;
+      font-weight: bold;
+      display: block;
+    }
+    .threat-details .rationale {
+      font-size: 10px;
+      color: #888;
+      font-style: italic;
+      display: block;
+      margin-top: 4px;
+    }
+    .passive-note {
+      font-size: 12px;
+      color: #888;
+      padding: 8px;
+      background: #f5f5f5;
+      border-radius: 4px;
+    }
+  </style>
 </head>
 <body style="margin:0;padding:0;background-color:#f4f4f7;font-family:Arial,Helvetica,sans-serif;">
   <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:#f4f4f7;">
@@ -15,6 +101,18 @@
             <td style="background-color:#7030A0;padding:24px 32px;color:#ffffff;">
               <h1 style="margin:0;font-size:22px;font-weight:bold;letter-spacing:0.5px;">BIOSIM DAILY PULSE</h1>
               <p style="margin:6px 0 0;font-size:13px;opacity:0.9;">{{ report_date }} | Molecules: Nivolumab (Opdivo) + Ipilimumab (Yervoy)</p>
+            </td>
+          </tr>
+
+          <!-- Signal Methodology -->
+          <tr>
+            <td style="padding:16px 32px 0;">
+              <div style="background:#FFFEF5; border:1px solid #FFC000; border-radius:4px; padding:10px; margin:10px 0; font-size:11px; color:#666;">
+                <strong>📡 Signal Methodology:</strong> 
+                Intelligence is sourced from ClinicalTrials.gov, SEC EDGAR, EMA EPAR, and company disclosures. 
+                Each signal is geo-tagged to your markets based on competitor capability and regional relevance. 
+                Relevance scores (0-100) reflect development stage × geo-proximity × combo capability.
+              </div>
             </td>
           </tr>
 
@@ -82,31 +180,55 @@
             </td>
           </tr>
 
-          <!-- Country Snapshots -->
+          <!-- Country Threat Cards -->
           <tr>
             <td style="padding:20px 32px 0;">
-              <h2 style="margin:0 0 12px;font-size:16px;color:#333333;text-transform:uppercase;letter-spacing:0.5px;">Country Snapshots</h2>
-              {% if country_snapshots %}
-                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
-                  <tr>
-                    {% for snapshot in country_snapshots %}
-                    <td style="width:33%;padding:8px;vertical-align:top;">
-                      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:#fafafa;border-radius:6px;padding:12px;">
-                        <tr>
-                          <td style="padding:12px;">
-                            <p style="margin:0 0 4px;font-size:14px;font-weight:bold;color:#333333;">{{ snapshot.flag }} {{ snapshot.name }}</p>
-                            <p style="margin:0 0 4px;font-size:11px;color:#666666;">Model: {{ snapshot.operating_model }}</p>
-                            <p style="margin:0;font-size:11px;color:#7030A0;font-weight:bold;">{{ snapshot.signal_count }} signal(s) today</p>
-                          </td>
-                        </tr>
-                      </table>
-                    </td>
-                    {% if loop.index is divisibleby 3 %}</tr><tr>{% endif %}
-                    {% endfor %}
-                  </tr>
-                </table>
+              <h2 style="margin:0 0 12px;font-size:16px;color:#333333;text-transform:uppercase;letter-spacing:0.5px;">Country Threat Cards</h2>
+              {% if country_threat_cards %}
+                {% for card in country_threat_cards %}
+                <div class="country-threat-card" {% if card.is_passive %}style="opacity:0.85;"{% endif %}>
+                  <div class="country-header">
+                    <span style="font-size:16px;">{{ card.flag }}</span>
+                    <span class="country-name">{{ card.name | upper }}</span>
+                    <span class="op-model">{{ card.operating_model }}</span>
+                    <span class="threat-count">
+                      {% if card.is_passive %}
+                        Monitoring
+                      {% else %}
+                        {{ card.threat_count }} Active Threat{% if card.threat_count != 1 %}s{% endif %}
+                      {% endif %}
+                    </span>
+                  </div>
+                  
+                  {% if card.is_passive %}
+                    <div class="passive-note">
+                      ⚪ No confirmed biosimilar activity. Alert threshold: HIGH+ confirmed signals only.
+                    </div>
+                  {% elif card.threats %}
+                    <div class="threat-list">
+                      {% for threat in card.threats %}
+                      <div class="threat-item {{ threat.color }}">
+                        <div class="threat-bar">
+                          <div class="threat-fill" style="width: {{ threat.score }}%"></div>
+                        </div>
+                        <div class="threat-details">
+                          <strong>{{ threat.competitor }} — {{ threat.asset }}</strong>
+                          <span class="stage">{{ threat.stage }}</span>
+                          <span class="score">Relevance: {{ threat.score }} ({{ threat.threat_level }})</span>
+                          <span class="rationale">{{ threat.rationale }}</span>
+                        </div>
+                      </div>
+                      {% endfor %}
+                    </div>
+                  {% else %}
+                    <div class="passive-note">
+                      ⚪ No confirmed biosimilar activity above relevance threshold.
+                    </div>
+                  {% endif %}
+                </div>
+                {% endfor %}
               {% else %}
-                <p style="margin:0 0 16px;font-size:13px;color:#888888;font-style:italic;">No country snapshots available for your region today.</p>
+                <p style="margin:0 0 16px;font-size:13px;color:#888888;font-style:italic;">No country threat data available for your region today.</p>
               {% endif %}
             </td>
           </tr>

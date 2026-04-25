@@ -58,6 +58,25 @@ _REGION_CODES: dict[EmailRegionFilter, str] = {
 }
 
 
+def _derive_rationale(stage: str | None) -> str:
+    if not stage:
+        return "→ Development status unknown"
+    lower = stage.lower()
+    if "launched" in lower:
+        return "→ Already launched in reference market"
+    if "bla" in lower or "filing" in lower or "approved" in lower:
+        return "→ Advanced regulatory stage → regional expansion expected"
+    if "phase 3" in lower or "phase3" in lower or "phase_3" in lower:
+        return "→ Phase 3 ongoing → regional filing expected"
+    if "phase 2" in lower or "phase2" in lower or "phase_2" in lower:
+        return "→ Phase 2 → exploring regional partnerships"
+    if "phase 1" in lower or "phase1" in lower or "phase_1" in lower:
+        return "→ Early clinical development"
+    if "preclinical" in lower or "pre_clinical" in lower:
+        return "→ Preclinical stage"
+    return f"→ {stage}"
+
+
 class EmailV2Service:
     """v2 email engine for role-based, region-specific briefings."""
 
@@ -120,47 +139,59 @@ class EmailV2Service:
         tier2 = [s for s in filtered if s.tier == 2][:5]
         tier3 = [s for s in filtered if s.tier == 3][:3]
 
-        # Country snapshots
-        country_snapshots: list[dict[str, Any]] = []
-        if filtered:
-            async with AsyncSessionLocal() as db:
-                country_ids: set[UUID] = set()
-                for signal in filtered:
-                    if signal.country_ids:
-                        country_ids.update(signal.country_ids)
+        # Country threat cards
+        country_threat_cards: list[dict[str, Any]] = []
+        async with AsyncSessionLocal() as db:
+            # Filter to user's regions
+            target_region_ids: set[UUID] = set()
+            if region_filter == EmailRegionFilter.ALL:
+                region_res = await db.execute(select(Region))
+                target_region_ids = {cast(UUID, r.id) for r in region_res.scalars().all()}
+            else:
+                region_res = await db.execute(
+                    select(Region).where(Region.code == region_filter.value.upper())
+                )
+                region_obj = region_res.scalar_one_or_none()
+                if region_obj:
+                    target_region_ids = {cast(UUID, region_obj.id)}
 
-                if country_ids:
-                    result = await db.execute(
-                        select(Country).where(Country.id.in_(country_ids))
-                    )
-                    countries = result.scalars().all()
+            if target_region_ids:
+                countries_result = await db.execute(
+                    select(Country).where(Country.region_id.in_(target_region_ids))
+                )
+                countries = list(countries_result.scalars().all())
 
-                    # Filter to user's regions
-                    target_region_ids: set[UUID] = set()
-                    if region_filter == EmailRegionFilter.ALL:
-                        region_res = await db.execute(select(Region))
-                        target_region_ids = {cast(UUID, r.id) for r in region_res.scalars().all()}
-                    else:
-                        region_res = await db.execute(
-                            select(Region).where(Region.code == region_filter.value.upper())
-                        )
-                        region_obj = region_res.scalar_one_or_none()
-                        if region_obj:
-                            target_region_ids = {cast(UUID, region_obj.id)}
+                for country in countries:
+                    summary = await self.threat_svc.get_country_threat_summary(cast(str, country.code))
+                    threats = [
+                        {
+                            "competitor": c["competitor_name"],
+                            "asset": c["asset_name"] or "Unknown",
+                            "stage": c["development_stage"] or "Unknown",
+                            "score": c["relevance_score"],
+                            "threat_level": c["threat_level"],
+                            "color": {
+                                "HIGH": "red",
+                                "MEDIUM": "amber",
+                                "LOW": "green",
+                            }.get(c["threat_level"], "green"),
+                            "rationale": _derive_rationale(c["development_stage"]),
+                        }
+                        for c in summary["competitors"]
+                        if c["relevance_score"] >= 30
+                    ]
+                    threats.sort(key=lambda x: x["score"], reverse=True)
+                    top_threats = threats[:3]
 
-                    for country in countries:
-                        if country.region_id in target_region_ids:
-                            signal_count = sum(
-                                1 for s in filtered
-                                if s.country_ids and country.id in s.country_ids
-                            )
-                            om = cast(str, country.operating_model.value) if country.operating_model else ""
-                            country_snapshots.append({
-                                "flag": "🌍",
-                                "name": country.name,
-                                "operating_model": om,
-                                "signal_count": signal_count,
-                            })
+                    country_threat_cards.append({
+                        "flag": "🌍",
+                        "name": country.name,
+                        "code": country.code,
+                        "operating_model": cast(str, country.operating_model.value) if country.operating_model else "",
+                        "is_passive": country.operating_model is not None and country.operating_model.value == "Passive",
+                        "threats": top_threats,
+                        "threat_count": len(top_threats),
+                    })
 
         # Combo threat corner
         combo_threat_level = "LOW"
@@ -189,7 +220,7 @@ class EmailV2Service:
             tier1_signals=tier1,
             tier2_signals=tier2,
             tier3_signals=tier3,
-            country_snapshots=country_snapshots,
+            country_threat_cards=country_threat_cards,
             combo_threat_level=combo_threat_level,
             combo_threat_detail=combo_threat_detail,
             year=datetime.now(UTC).year,
