@@ -11,6 +11,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.logging import get_logger
 from app.db.session import AsyncSessionLocal
+from app.models.combo import CompetitorMoleculeAssignment
+from app.models.competitor import Competitor
 from app.models.email_pref import (
     EmailDepartmentFilter,
     EmailOperatingModelThreshold,
@@ -19,8 +21,9 @@ from app.models.email_pref import (
 )
 from app.models.event import Event
 from app.models.geo import Country, Region
+from app.models.molecule import Molecule
 from app.models.sec_filing import SecFiling
-from app.models.signal import GeoSignal
+from app.models.signal import GeoSignal, SignalType
 from app.models.source_document import SourceDocument
 from app.services.combo_service import ComboIntelligenceService
 from app.services.noise_service import NoiseBlockService
@@ -71,6 +74,17 @@ _EVENT_TYPE_TO_SOURCE_DISPLAY: dict[str, str] = {
     "press_release": "Company Press Release",
     "pricing_update": "Industry Intelligence",
     "combo_announcement": "Industry Intelligence",
+}
+
+_COUNTRY_FLAGS: dict[str, str] = {
+    "AL": "🇦🇱", "DZ": "🇩🇿", "AR": "🇦🇷", "BA": "🇧🇦", "BR": "🇧🇷",
+    "BG": "🇧🇬", "CL": "🇨🇱", "HR": "🇭🇷", "CZ": "🇨🇿", "EG": "🇪🇬",
+    "HU": "🇭🇺", "IN": "🇮🇳", "JO": "🇯🇴", "KZ": "🇰🇿", "KE": "🇰🇪",
+    "KW": "🇰🇼", "LB": "🇱🇧", "LY": "🇱🇾", "MX": "🇲🇽", "ME": "🇲🇪",
+    "MA": "🇲🇦", "NG": "🇳🇬", "OM": "🇴🇲", "PK": "🇵🇰", "PE": "🇵🇪",
+    "PL": "🇵🇱", "QA": "🇶🇦", "RO": "🇷🇴", "RS": "🇷🇸", "SA": "🇸🇦",
+    "ZA": "🇿🇦", "KR": "🇰🇷", "TR": "🇹🇷", "AE": "🇦🇪", "UY": "🇺🇾",
+    "VE": "🇻🇪", "VN": "🇻🇳", "ZW": "🇿🇼",
 }
 
 
@@ -204,6 +218,21 @@ async def _build_competitor_source_links(competitor_id: UUID, db: AsyncSession) 
     return sources
 
 
+def _format_source_links(sources: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Transform internal source format to template-ready label/url dicts, deduped by URL."""
+    out: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for s in sources:
+        url = s.get("url")
+        if url:
+            if url in seen:
+                continue
+            seen.add(url)
+        label = f"{s['name']} {s['id'] or ''}".strip()
+        out.append({"label": label, "url": url})
+    return out
+
+
 class EmailV2Service:
     """v2 email engine for role-based, region-specific briefings."""
 
@@ -236,6 +265,248 @@ class EmailV2Service:
         return filtered
 
     async def compose_daily_pulse(
+        self,
+        preference: EmailPreference,
+        since: datetime,
+        format: str = "v2",
+    ) -> str:
+        if format == "legacy":
+            return await self._compose_daily_pulse_legacy(preference, since)
+        return await self._compose_daily_pulse_v2(preference, since)
+
+    async def _compose_daily_pulse_v2(
+        self,
+        preference: EmailPreference,
+        since: datetime,
+    ) -> str:
+        region_filter = preference.region_filter
+        regions_to_query: list[str] = []
+        region_filter_val = cast(EmailRegionFilter, region_filter)
+        if region_filter_val == EmailRegionFilter.ALL:
+            regions_to_query = ["CEE_EU", "LATAM", "MEA"]
+        else:
+            code = _REGION_CODES.get(region_filter_val)
+            if code:
+                regions_to_query = [code]
+
+        async with AsyncSessionLocal() as db:
+            # Resolve monitored molecules (nivolumab + ipilimumab)
+            mol_result = await db.execute(
+                select(Molecule).where(Molecule.inn.in_(["nivolumab", "ipilimumab"]))
+            )
+            monitored_molecules = list(mol_result.scalars().all())
+            monitored_mol_ids = {cast(UUID, m.id) for m in monitored_molecules}
+
+            # Resolve target regions and countries
+            target_region_ids: set[UUID] = set()
+            if region_filter == EmailRegionFilter.ALL:
+                region_res = await db.execute(select(Region))
+                target_region_ids = {cast(UUID, r.id) for r in region_res.scalars().all()}
+            else:
+                region_res = await db.execute(
+                    select(Region).where(Region.code == region_filter.value.upper())
+                )
+                region_obj = region_res.scalar_one_or_none()
+                if region_obj:
+                    target_region_ids = {cast(UUID, region_obj.id)}
+
+            countries: list[Country] = []
+            if target_region_ids:
+                countries_result = await db.execute(
+                    select(Country).where(Country.region_id.in_(target_region_ids))
+                )
+                countries = list(countries_result.scalars().all())
+
+            # --- GLOBAL THREATS ---
+            global_threats: list[dict[str, Any]] = []
+            if monitored_mol_ids:
+                assignments_result = await db.execute(
+                    select(CompetitorMoleculeAssignment, Competitor)
+                    .join(Competitor, CompetitorMoleculeAssignment.competitor_id == Competitor.id)
+                    .where(CompetitorMoleculeAssignment.molecule_id.in_(monitored_mol_ids))
+                )
+                assignment_rows = assignments_result.all()
+
+                # Build competitor lookup
+                competitor_assignments: dict[UUID, tuple[CompetitorMoleculeAssignment, Competitor]] = {}
+                for assignment, competitor in assignment_rows:
+                    cid = cast(UUID, competitor.id)
+                    competitor_assignments[cid] = (assignment, competitor)
+
+                # Collect country summaries (reuses existing efficient query pattern)
+                country_summaries: list[tuple[Country, dict[str, Any]]] = []
+                for country in countries:
+                    summary = await self.threat_svc.get_country_threat_summary(cast(str, country.code))
+                    country_summaries.append((country, summary))
+
+                # Invert: competitor -> countries and max score
+                competitor_countries: dict[UUID, list[tuple[str, int]]] = {}
+                for country, summary in country_summaries:
+                    for c in summary["competitors"]:
+                        score = c["relevance_score"]
+                        stage = c["development_stage"] or ""
+                        if _is_watch_stage(stage) or score <= 0:
+                            continue
+                        cid = UUID(c["competitor_id"])
+                        if cid not in competitor_countries:
+                            competitor_countries[cid] = []
+                        competitor_countries[cid].append((cast(str, country.name), score))
+
+                # Pre-load source links for active competitors
+                active_competitor_ids = set(competitor_countries.keys())
+                competitor_sources: dict[UUID, list[dict[str, Any]]] = {}
+                for cid in active_competitor_ids:
+                    competitor_sources[cid] = await _build_competitor_source_links(cid, db)
+
+                for cid, (assignment, competitor) in competitor_assignments.items():
+                    if cid not in competitor_countries:
+                        continue
+                    stage = cast(str | None, assignment.development_stage) or cast(
+                        str | None, competitor.development_stage
+                    )
+                    affected = competitor_countries[cid]
+                    max_score = max(score for _name, score in affected)
+                    relevance_label = (
+                        "HIGH" if max_score >= 75 else "MEDIUM" if max_score >= 50 else "LOW"
+                    )
+                    sources = competitor_sources.get(cid, [])
+                    source_links = _format_source_links(sources)
+
+                    global_threats.append({
+                        "competitor_name": competitor.canonical_name,
+                        "product_code": assignment.asset_name or competitor.asset_code or "Unknown",
+                        "development_stage": stage or "Unknown",
+                        "relevance_score": max_score,
+                        "relevance_label": relevance_label,
+                        "rationale": _derive_rationale(stage),
+                        "affected_countries": [name for name, _score in affected],
+                        "source_links": source_links,
+                        "verified_date": datetime.now(UTC).strftime("%Y-%m-%d"),
+                    })
+
+                global_threats.sort(key=lambda x: x["relevance_score"], reverse=True)
+
+            # --- COUNTRY-SPECIFIC ALERTS ---
+            all_signals: list[GeoSignal] = []
+            seen_signal_ids: set[UUID] = set()
+            for region_code in regions_to_query:
+                delta = await self.signal_svc.get_daily_delta(region_code, since)
+                for signal in delta:
+                    sid = cast(UUID, signal.id)
+                    if sid not in seen_signal_ids:
+                        all_signals.append(signal)
+                        seen_signal_ids.add(sid)
+
+            filtered_signals = self._filter_signals(all_signals, preference)
+
+            # Build event lookup for enrichment
+            signal_event_ids = [cast(UUID, s.event_id) for s in filtered_signals if s.event_id]
+            event_lookup: dict[UUID, Event] = {}
+            if signal_event_ids:
+                from sqlalchemy.orm import selectinload
+                event_result = await db.execute(
+                    select(Event)
+                    .options(selectinload(Event.source_document), selectinload(Event.competitor))
+                    .where(Event.id.in_(signal_event_ids))
+                )
+                for evt in event_result.scalars().all():
+                    event_lookup[cast(UUID, evt.id)] = evt
+
+            signal_meta: dict[UUID, dict[str, Any]] = {}
+            for signal in filtered_signals:
+                signal_meta[cast(UUID, signal.id)] = _format_signal_source(signal, event_lookup)
+
+            country_alerts: list[dict[str, Any]] = []
+            for country in countries:
+                country_signals: list[GeoSignal] = []
+                for signal in filtered_signals:
+                    cids: list[UUID] = cast(list[UUID], signal.country_ids or [])
+                    if country.id not in cids:
+                        continue
+
+                    # For trial updates, verify the signal is genuinely about this country
+                    if signal.signal_type == SignalType.TRIAL_UPDATE:
+                        event = event_lookup.get(cast(UUID, signal.event_id)) if signal.event_id else None
+                        is_specific = False
+                        if event and (
+                            (event.country and event.country.lower() == country.name.lower())
+                            or (event.summary and country.name.lower() in event.summary.lower())
+                            or (event.evidence_excerpt and country.name.lower() in event.evidence_excerpt.lower())
+                        ):
+                            is_specific = True
+                        if not is_specific:
+                            continue
+
+                    country_signals.append(signal)
+
+                # Sort by tier (asc) then relevance_score (desc) and cap at 5 per country
+                country_signals.sort(key=lambda s: (s.tier, -cast(int, s.relevance_score or 0)))
+                country_signals = country_signals[:5]
+
+                enriched_signals: list[dict[str, Any]] = []
+                for signal in country_signals:
+                    meta = signal_meta.get(cast(UUID, signal.id), {})
+                    event = event_lookup.get(cast(UUID, signal.event_id)) if signal.event_id else None
+                    competitor_name = None
+                    if signal.competitor_id and event and event.competitor:
+                        competitor_name = event.competitor.canonical_name
+
+                    title_parts: list[str] = []
+                    if competitor_name:
+                        title_parts.append(competitor_name)
+                    title_parts.append(signal.signal_type.value.replace("_", " ").title())
+                    title = " — ".join(title_parts) if title_parts else "Signal Alert"
+
+                    enriched_signals.append({
+                        "id": signal.id,
+                        "title": title,
+                        "tier": signal.tier,
+                        "tier_label": f"Tier {signal.tier}",
+                        "signal_type": signal.signal_type.value,
+                        "signal_type_display": signal.signal_type.value.replace("_", " ").title(),
+                        "description": signal.delta_note or (event.summary if event else None) or "No description available.",
+                        "source_url": signal.source_url or meta.get("source_url"),
+                        "source_type": meta.get("source_type", "Industry Intelligence"),
+                        "source_document_id": meta.get("source_document_id"),
+                        "competitor_name": competitor_name,
+                        "relevance_score": signal.relevance_score,
+                        "created_at": signal.created_at.strftime("%Y-%m-%d") if signal.created_at else None,
+                    })
+
+                country_alerts.append({
+                    "country_name": cast(str, country.name),
+                    "country_code": cast(str, country.code),
+                    "flag": _COUNTRY_FLAGS.get(cast(str, country.code), "🌍"),
+                    "operating_model": cast(str, country.operating_model.value) if country.operating_model else "",
+                    "alert_count": len(enriched_signals),
+                    "signals": enriched_signals,
+                    "has_activity": len(enriched_signals) > 0,
+                })
+
+            country_alerts.sort(key=lambda x: (-x["alert_count"], x["country_name"]))
+
+        env = _get_jinja_env()
+        template = env.get_template("daily_pulse.html")
+        region_name = (
+            regions_to_query[0].replace("_", "/")
+            if len(regions_to_query) == 1
+            else "All"
+        )
+        return template.render(
+            region_name=region_name,
+            report_date=datetime.now(UTC).strftime("%Y-%m-%d"),
+            global_threats=global_threats,
+            country_alerts=country_alerts,
+            methodology_note=(
+                "Intelligence is sourced from ClinicalTrials.gov, SEC EDGAR, EMA EPAR, and company disclosures. "
+                "Each signal is geo-tagged to your markets based on competitor capability and regional relevance. "
+                "Relevance scores (0-100) reflect development stage x geo-proximity x combo capability."
+            ),
+            unsubscribe_url="#",
+            year=datetime.now(UTC).year,
+        )
+
+    async def _compose_daily_pulse_legacy(
         self,
         preference: EmailPreference,
         since: datetime,
@@ -403,7 +674,7 @@ class EmailV2Service:
             logger.warning("Combo threat fetch failed", error=str(exc))
 
         env = _get_jinja_env()
-        template = env.get_template("daily_pulse.html")
+        template = env.get_template("daily_pulse_legacy.html")
         return template.render(
             report_date=datetime.now(UTC).strftime("%Y-%m-%d"),
             tier1_signals=tier1,

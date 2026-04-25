@@ -91,6 +91,7 @@ async def _resolve_preference(
 @router.post("/daily-pulse")
 async def post_daily_pulse(
     request: DailyPulseRequest,
+    format: str = Query(default="v2"),
     db: AsyncSession = Depends(get_db),
     _api_key: str = Depends(verify_api_key),
 ) -> str:
@@ -99,7 +100,7 @@ async def post_daily_pulse(
     )
     since = datetime.now(UTC) - timedelta(days=1)
     svc = EmailV2Service()
-    return await svc.compose_daily_pulse(pref, since)
+    return await svc.compose_daily_pulse(pref, since, format=format)
 
 
 @router.get("/daily-pulse")
@@ -107,12 +108,13 @@ async def get_daily_pulse(
     region: str = Query(default="LATAM"),
     department: str = Query(default="commercial"),
     role: str = Query(default="commercial"),
+    format: str = Query(default="v2"),
     _api_key: str = Depends(verify_api_key),
 ) -> str:
     pref = _build_preference_from_params(region, department, role)
     since = datetime.now(UTC) - timedelta(days=1)
     svc = EmailV2Service()
-    return await svc.compose_daily_pulse(pref, since)
+    return await svc.compose_daily_pulse(pref, since, format=format)
 
 
 @router.post("/weekly-strategic")
