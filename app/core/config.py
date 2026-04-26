@@ -50,6 +50,20 @@ class Settings(BaseSettings):
     USPTO_POLL_DAY: str = "tuesday"
     USPTO_LOOKBACK_DAYS: int = 14
 
+    EPO_ENABLED: bool = True
+    EPO_OPS_BASE_URL: str = "https://ops.epo.org/3.2/rest-services"
+    EPO_POLL_DAY: str = "wednesday"
+    EPO_LOOKBACK_DAYS: int = 14
+
+    WHO_ICTRP_ENABLED: bool = True
+    WHO_ICTRP_BASE_URL: str = "https://www.who.int/clinical-trials-registry-platform"
+    WHO_ICTRP_POLL_DAY: int = 1
+    WHO_ICTRP_DOWNLOAD_TIMEOUT: int = 120
+
+    PRESS_RELEASE_ENABLED: bool = True
+    PRESS_RELEASE_AUTO_VERIFY_THRESHOLD: int = 80
+    PRESS_RELEASE_NOISE_EXPIRY_DAYS: int = 7
+
     SMTP_HOST: str = ""
     SMTP_PORT: int = 587
     SMTP_USER: str = ""

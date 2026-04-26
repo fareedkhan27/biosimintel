@@ -7,6 +7,7 @@ from app.api.v1 import (
     competitors,
     ema_epar,
     email_v2,
+    epo,
     events,
     geo_intelligence,
     health,
@@ -16,12 +17,14 @@ from app.api.v1 import (
     molecules,
     noise,
     openfda,
+    press_release,
     pubmed,
     sec_filings,
     threat_matrix,
     timeline,
     uspto,
     webhooks,
+    who_ictrp,
 )
 
 api_router = APIRouter()
@@ -45,3 +48,6 @@ api_router.include_router(ema_epar.router, tags=["ema-epar"])
 api_router.include_router(openfda.router, tags=["openfda"])
 api_router.include_router(pubmed.router, tags=["pubmed"])
 api_router.include_router(uspto.router, tags=["uspto"])
+api_router.include_router(epo.router, tags=["epo"])
+api_router.include_router(who_ictrp.router, tags=["who-ictrp"])
+api_router.include_router(press_release.router, tags=["press-release"])

@@ -53,6 +53,11 @@ from app.schemas.llm_insights import InsightResult
 from app.schemas.molecule import MoleculeCreate, MoleculeRead, MoleculeUpdate
 from app.schemas.noise import NoiseSignalCreate, NoiseSignalRead, NoiseSignalUpdate
 from app.schemas.predictive_timeline import LaunchEstimate, LaunchTimeline
+from app.schemas.press_release import (
+    PressReleaseIngestResult,
+    PressReleaseRawCreate,
+    PressReleaseRawResponse,
+)
 from app.schemas.pubmed import (
     PubmedEntryCreate,
     PubmedEntryResponse,
@@ -116,6 +121,9 @@ __all__ = [
     "NoiseSignalRead",
     "NoiseSignalUpdate",
     "PatentCliffEntry",
+    "PressReleaseIngestResult",
+    "PressReleaseRawCreate",
+    "PressReleaseRawResponse",
     "PubmedEntryCreate",
     "PubmedEntryResponse",
     "PubmedPollResult",
