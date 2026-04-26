@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Biosim Intelligence Command Center</title>
+<style>
+  :root {
+    --bg-primary: #0b1120;
+    --bg-secondary: #111827;
+    --bg-card: #1f2937;
+    --bg-hover: #374151;
+    --text-primary: #f3f4f6;
+    --text-secondary: #9ca3af;
+    --accent-blue: #3b82f6;
+    --accent-amber: #f59e0b;
+    --accent-red: #ef4444;
+    --accent-green: #10b981;
+    --accent-teal: #14b8a6;
+    --accent-orange: #f97316;
+    --border: #374151;
+    --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+  a { color: var(--accent-blue); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .container { max-width: 1400px; margin: 0 auto; padding: 1rem; }
+  header {
+    background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 1.5rem 1rem;
+    margin-bottom: 1.5rem;
+  }
+  .header-inner {
+    max-width: 1400px;
+    margin: 0 auto;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+  .header-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+  .header-meta {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.35rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .badge-amber { background: rgba(245, 158, 11, 0.15); color: var(--accent-amber); border: 1px solid rgba(245, 158, 11, 0.3); }
+  .badge-blue { background: rgba(59, 130, 246, 0.15); color: var(--accent-blue); border: 1px solid rgba(59, 130, 246, 0.3); }
+  .timestamp { color: var(--text-secondary); font-size: 0.875rem; }
+
+  /* KPI Cards */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+  .kpi-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    padding: 1.25rem;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .kpi-card:hover { transform: translateY(-2px); box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
+  .kpi-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-secondary); margin-bottom: 0.25rem; }
+  .kpi-value { font-size: 1.75rem; font-weight: 700; }
+  .kpi-value.text-amber { color: var(--accent-amber); }
+  .kpi-value.text-blue { color: var(--accent-blue); }
+  .kpi-value.text-green { color: var(--accent-green); }
+  .kpi-value.text-red { color: var(--accent-red); }
+
+  /* Section titles */
+  .section { margin-bottom: 2rem; }
+  .section-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  /* Heatmap */
+  .heatmap-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 0.75rem;
+  }
+  .country-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    padding: 0.875rem;
+    position: relative;
+    overflow: hidden;
+  }
+  .country-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+  }
+  .country-card.level-monitoring::before { background: #6b7280; }
+  .country-card.level-low::before { background: var(--accent-teal); }
+  .country-card.level-medium::before { background: var(--accent-amber); }
+  .country-card.level-high::before { background: var(--accent-orange); }
+  .country-card.level-critical::before { background: var(--accent-red); }
+  .country-code { font-size: 0.75rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; }
+  .country-name { font-size: 0.9375rem; font-weight: 600; margin: 0.15rem 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .country-meta { font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.25rem; }
+  .country-threat { font-size: 0.8125rem; font-weight: 600; margin-top: 0.35rem; }
+  .country-threat.level-monitoring { color: #6b7280; }
+  .country-threat.level-low { color: var(--accent-teal); }
+  .country-threat.level-medium { color: var(--accent-amber); }
+  .country-threat.level-high { color: var(--accent-orange); }
+  .country-threat.level-critical { color: var(--accent-red); }
+
+  /* Timeline */
+  .timeline-list {
+    max-height: 480px;
+    overflow-y: auto;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+  }
+  .timeline-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.875rem;
+    padding: 0.875rem 1rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .timeline-item:last-child { border-bottom: none; }
+  .timeline-item:hover { background: var(--bg-hover); }
+  .timeline-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    margin-top: 0.45rem;
+    flex-shrink: 0;
+  }
+  .timeline-dot.tier-1 { background: var(--accent-red); box-shadow: 0 0 6px rgba(239, 68, 68, 0.5); }
+  .timeline-dot.tier-2 { background: var(--accent-amber); }
+  .timeline-dot.tier-3 { background: var(--accent-blue); }
+  .timeline-body { flex: 1; min-width: 0; }
+  .timeline-title { font-size: 0.9375rem; font-weight: 500; margin-bottom: 0.15rem; word-break: break-word; }
+  .timeline-meta { font-size: 0.75rem; color: var(--text-secondary); }
+  .timeline-badge {
+    display: inline-block;
+    padding: 0.15rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    margin-left: 0.5rem;
+  }
+  .badge-tier-1 { background: rgba(239, 68, 68, 0.15); color: var(--accent-red); }
+  .badge-tier-2 { background: rgba(245, 158, 11, 0.15); color: var(--accent-amber); }
+  .badge-tier-3 { background: rgba(59, 130, 246, 0.15); color: var(--accent-blue); }
+
+  /* Competitor Table */
+  .table-wrap {
+    overflow-x: auto;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+  thead th {
+    text-align: left;
+    padding: 0.75rem 1rem;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-secondary);
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  tbody td { padding: 0.75rem 1rem; border-bottom: 1px solid var(--border); }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: var(--bg-hover); }
+  .watch-list-badge {
+    display: inline-block;
+    padding: 0.15rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    background: rgba(245, 158, 11, 0.15);
+    color: var(--accent-amber);
+  }
+
+  /* Regions */
+  .region-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1rem;
+  }
+  .region-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    padding: 1rem;
+  }
+  .region-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+  }
+  .region-name { font-weight: 600; font-size: 1rem; }
+  .region-count { font-size: 0.75rem; color: var(--text-secondary); }
+  .region-stat { display: flex; justify-content: space-between; font-size: 0.875rem; margin: 0.35rem 0; }
+  .region-stat span:first-child { color: var(--text-secondary); }
+  .region-stat span:last-child { font-weight: 500; }
+
+  /* Source Health */
+  .source-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 0.75rem;
+  }
+  .source-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 0.5rem;
+    padding: 0.875rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  .source-indicator {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .source-active { background: var(--accent-green); box-shadow: 0 0 6px rgba(16, 185, 129, 0.4); }
+  .source-dormant { background: #6b7280; }
+  .source-info { flex: 1; min-width: 0; }
+  .source-name { font-size: 0.875rem; font-weight: 600; }
+  .source-meta { font-size: 0.75rem; color: var(--text-secondary); }
+
+  /* Noise Alert */
+  .noise-banner {
+    background: rgba(245, 158, 11, 0.08);
+    border: 1px solid rgba(245, 158, 11, 0.25);
+    border-radius: 0.5rem;
+    padding: 0.75rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.875rem;
+  }
+  .noise-banner.hidden { display: none; }
+  .noise-icon { font-size: 1.1rem; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: var(--bg-secondary); }
+  ::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: #6b7280; }
+
+  @media (max-width: 640px) {
+    .header-title { font-size: 1.15rem; }
+    .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+    .heatmap-grid { grid-template-columns: repeat(2, 1fr); }
+    .region-grid { grid-template-columns: 1fr; }
+    .source-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div>
+      <div class="header-title">🧬 Biosim Intelligence Command Center</div>
+      <div class="timestamp">{{ now.strftime('%B %d, %Y at %H:%M UTC') }}</div>
+    </div>
+    <div class="header-meta">
+      <span class="badge badge-blue">Phase 12A Live</span>
+      <span class="badge badge-amber">Opdivo (nivolumab) Focus</span>
+    </div>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- KPI Cards -->
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-label">Total Signals (30d)</div>
+      <div class="kpi-value text-blue">{{ total_signals }}</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Active Countries</div>
+      <div class="kpi-value text-green">{{ active_countries }} <span style="font-size:0.85rem;color:var(--text-secondary)">/ 37</span></div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Watch List Competitors</div>
+      <div class="kpi-value text-amber">{{ watch_list_count }}</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Dormant Sources</div>
+      <div class="kpi-value text-red">{{ dormant_sources }}</div>
+    </div>
+  </div>
+
+  <!-- Noise Alert -->
+  <div class="section">
+    <div class="noise-banner {% if pending_noise == 0 %}hidden{% endif %}">
+      <span class="noise-icon">⚠️</span>
+      <span><strong>Noise Alert:</strong> {{ pending_noise }} unverified noise signal{{ 's' if pending_noise != 1 else '' }} pending review.</span>
+    </div>
+  </div>
+
+  <!-- Threat Heatmap -->
+  <div class="section">
+    <div class="section-title">🗺️ Threat Heatmap</div>
+    <div class="heatmap-grid">
+      {% for c in heatmap %}
+      <div class="country-card level-{{ c.threat_level.lower() }}">
+        <div class="country-code">{{ c.country_code }}</div>
+        <div class="country-name">{{ c.country_name }}</div>
+        <div class="country-meta">{{ c.region }} • {{ c.signal_count_30d }} signals</div>
+        <div class="country-threat level-{{ c.threat_level.lower() }}">
+          {{ c.threat_level }} {% if c.highest_competitor_threat_score > 0 %}({{ c.highest_competitor_threat_score }}){% endif %}
+        </div>
+        <div class="country-meta">{{ c.top_competitor_name }}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Signal Timeline -->
+  <div class="section">
+    <div class="section-title">📡 Signal Timeline</div>
+    <div class="timeline-list">
+      {% for s in timeline %}
+      <div class="timeline-item">
+        <div class="timeline-dot tier-{{ s.tier }}"></div>
+        <div class="timeline-body">
+          <div class="timeline-title">
+            {{ s.title }}
+            <span class="timeline-badge badge-tier-{{ s.tier }}">Tier {{ s.tier }}</span>
+          </div>
+          <div class="timeline-meta">
+            {{ s.created_at.strftime('%b %d, %Y') }} • {{ s.competitor_name }} • {{ s.country_name }}
+            {% if s.source_type %}• {{ s.source_type }}{% endif %}
+            {% if s.url %}• <a href="{{ s.url }}" target="_blank" rel="noopener">Source ↗</a>{% endif %}
+          </div>
+        </div>
+      </div>
+      {% else %}
+      <div class="timeline-item">
+        <div class="timeline-body">
+          <div class="timeline-title">No signals in selected timeframe.</div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Competitor Tracker -->
+  <div class="section">
+    <div class="section-title">🎯 Competitor Tracker</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Competitor</th>
+            <th>Watch List</th>
+            <th>Molecules</th>
+            <th>Active Countries</th>
+            <th>Latest Signal</th>
+            <th>Total Signals</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in competitors %}
+          <tr>
+            <td><strong>{{ c.name }}</strong></td>
+            <td>{% if c.watch_list %}<span class="watch-list-badge">Watch</span>{% else %}—{% endif %}</td>
+            <td>{{ c.molecules | join(', ') if c.molecules else '—' }}</td>
+            <td>{{ c.active_countries_count }}</td>
+            <td>
+              {% if c.latest_signal_title %}
+                <div style="max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="{{ c.latest_signal_title }}">
+                  {{ c.latest_signal_title }}
+                </div>
+                <div style="font-size:0.75rem;color:var(--text-secondary)">{{ c.latest_signal_date.strftime('%b %d, %Y') }}</div>
+              {% else %}—{% endif %}
+            </td>
+            <td>{{ c.total_signals_count }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Regional Breakdown -->
+  <div class="section">
+    <div class="section-title">🌐 Regional Breakdown</div>
+    <div class="region-grid">
+      {% for r in regions %}
+      <div class="region-card">
+        <div class="region-header">
+          <div class="region-name">{{ r.region_code }}</div>
+          <div class="region-count">{{ r.country_count }} countries</div>
+        </div>
+        <div class="region-stat"><span>Signals (7d)</span> <span>{{ r.total_signals_7d }}</span></div>
+        <div class="region-stat"><span>Signals (30d)</span> <span>{{ r.total_signals_30d }}</span></div>
+        <div class="region-stat"><span>Avg Threat</span> <span>{{ r.avg_threat_score }}</span></div>
+        <div class="region-stat"><span>Top Country</span> <span>{{ r.top_country_by_threat }}</span></div>
+        <div class="region-stat"><span>Top Competitor</span> <span>{{ r.top_competitor_by_presence }}</span></div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Source Health -->
+  <div class="section">
+    <div class="section-title">🔌 Source Health</div>
+    <div class="source-grid">
+      {% for s in sources %}
+      <div class="source-card">
+        <div class="source-indicator {% if s.status == 'ACTIVE' %}source-active{% else %}source-dormant{% endif %}"></div>
+        <div class="source-info">
+          <div class="source-name">{{ s.source_name.replace('_', ' ').title() }}</div>
+          <div class="source-meta">
+            {{ s.status }}
+            {% if s.last_poll_timestamp %}
+              • {{ s.last_poll_timestamp.strftime('%b %d') }}
+            {% else %}
+              • No recent poll
+            {% endif %}
+            • {{ s.signal_count_total }} total
+            {% if s.signal_count_7d > 0 %}• +{{ s.signal_count_7d }} (7d){% endif %}
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <footer style="text-align:center;padding:2rem 0;color:var(--text-secondary);font-size:0.75rem;">
+    Biosim Geo-Intelligence v1.0 • Read-only Executive Dashboard • {{ now.strftime('%Y') }}
+  </footer>
+
+</div>
+
+<script>
+  // Simple auto-refresh every 60 seconds
+  setInterval(function() {
+    if (document.visibilityState === 'visible') {
+      window.location.reload();
+    }
+  }, 60000);
+</script>
+
+</body>
+</html>

@@ -18,6 +18,7 @@ from app.core.exceptions import (
 )
 from app.core.logging import configure_logging, get_logger
 from app.db.session import engine
+from app.routers.dashboard import router as dashboard_router
 
 logger = get_logger(__name__)
 
@@ -65,6 +66,7 @@ app.add_middleware(
 )
 
 app.include_router(api_router, prefix="/api/v1")
+app.include_router(dashboard_router, prefix="/api/v1/dashboard")
 
 
 @app.exception_handler(NotFoundException)
