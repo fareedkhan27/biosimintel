@@ -8,6 +8,7 @@ from app.api.v1 import (
     ema_epar,
     email_v2,
     epo,
+    eu_ctis,
     events,
     geo_intelligence,
     health,
@@ -20,6 +21,7 @@ from app.api.v1 import (
     press_release,
     pubmed,
     sec_filings,
+    social_media,
     threat_matrix,
     timeline,
     uspto,
@@ -49,5 +51,7 @@ api_router.include_router(openfda.router, tags=["openfda"])
 api_router.include_router(pubmed.router, tags=["pubmed"])
 api_router.include_router(uspto.router, tags=["uspto"])
 api_router.include_router(epo.router, tags=["epo"])
+api_router.include_router(eu_ctis.router, tags=["eu-ctis"])
 api_router.include_router(who_ictrp.router, tags=["who-ictrp"])
 api_router.include_router(press_release.router, tags=["press-release"])
+api_router.include_router(social_media.router, tags=["social-media"])

@@ -38,6 +38,7 @@ class SignalType(enum.StrEnum):
     PATENT_FILING = "patent_filing"
     EP_PATENT = "EP_PATENT"
     PRESS_RELEASE = "PRESS_RELEASE"
+    EU_CTIS_TRIAL = "EU_CTIS_TRIAL"
 
 
 class Confidence(enum.StrEnum):

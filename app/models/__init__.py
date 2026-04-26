@@ -6,6 +6,7 @@ from app.models.data_provenance import DataProvenance
 from app.models.ema_epar import EmaEparEntry, EmaEparRawPoll
 from app.models.email_pref import EmailPreference
 from app.models.epo import EpoEntry, EpoRawPoll
+from app.models.eu_ctis import EuCtisEntry, EuCtisRawScrape
 from app.models.event import Event
 from app.models.geo import CompetitorCapability, Country, Region
 from app.models.intelligence_baseline import IntelligenceBaseline
@@ -19,6 +20,7 @@ from app.models.pubmed import PubmedEntry, PubmedRawPoll
 from app.models.review import Review
 from app.models.scoring_rule import ScoringRule
 from app.models.signal import GeoSignal
+from app.models.social_media import SocialMediaRaw
 from app.models.source_document import SourceDocument
 from app.models.uspto import UsptoEntry, UsptoRawPoll
 from app.models.who_ictrp import WhoIctrpEntry, WhoIctrpRawPoll
@@ -34,6 +36,8 @@ __all__ = [
     "EmailPreference",
     "EpoEntry",
     "EpoRawPoll",
+    "EuCtisEntry",
+    "EuCtisRawScrape",
     "Event",
     "GeoSignal",
     "IntelligenceBaseline",
@@ -50,6 +54,7 @@ __all__ = [
     "Region",
     "Review",
     "ScoringRule",
+    "SocialMediaRaw",
     "SourceDocument",
     "UsptoEntry",
     "UsptoRawPoll",

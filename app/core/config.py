@@ -64,6 +64,15 @@ class Settings(BaseSettings):
     PRESS_RELEASE_AUTO_VERIFY_THRESHOLD: int = 80
     PRESS_RELEASE_NOISE_EXPIRY_DAYS: int = 7
 
+    EU_CTIS_ENABLED: bool = True
+    EU_CTIS_BASE_URL: str = "https://euclinicaltrials.eu"
+    EU_CTIS_POLL_DAY: str = "thursday"
+    EU_CTIS_MAX_PAGES: int = 5
+
+    SOCIAL_MEDIA_ENABLED: bool = True
+    SOCIAL_MEDIA_MAX_CONFIDENCE: int = 55  # Hard cap — never auto-verifies
+    SOCIAL_MEDIA_NOISE_EXPIRY_DAYS: int = 7
+
     SMTP_HOST: str = ""
     SMTP_PORT: int = 587
     SMTP_USER: str = ""

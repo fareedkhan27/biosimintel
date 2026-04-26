@@ -22,6 +22,13 @@ from app.schemas.email_pref import (
     EmailPreferenceRead,
     EmailPreferenceUpdate,
 )
+from app.schemas.eu_ctis import (
+    EuCtisEntryCreate,
+    EuCtisEntryResponse,
+    EuCtisRawScrapeCreate,
+    EuCtisRawScrapeResponse,
+    EuCtisScrapeResult,
+)
 from app.schemas.event import EventCreate, EventListParams, EventRead
 from app.schemas.geo import (
     CompetitorCapabilityCreate,
@@ -67,6 +74,12 @@ from app.schemas.pubmed import (
 )
 from app.schemas.regulatory_risk import PatentCliffEntry, RegulatoryRiskProfile
 from app.schemas.signal import GeoSignalCreate, GeoSignalRead, GeoSignalUpdate
+from app.schemas.social_media import (
+    SocialMediaIngestResult,
+    SocialMediaRawCreate,
+    SocialMediaRawResponse,
+    SocialMediaStats,
+)
 from app.schemas.source_document import SourceDocumentCreate, SourceDocumentRead
 
 __all__ = [
@@ -97,6 +110,11 @@ __all__ = [
     "EmailPreferenceCreate",
     "EmailPreferenceRead",
     "EmailPreferenceUpdate",
+    "EuCtisEntryCreate",
+    "EuCtisEntryResponse",
+    "EuCtisRawScrapeCreate",
+    "EuCtisRawScrapeResponse",
+    "EuCtisScrapeResult",
     "EventCreate",
     "EventListParams",
     "EventRead",
@@ -133,6 +151,10 @@ __all__ = [
     "RegionRead",
     "RegionUpdate",
     "RegulatoryRiskProfile",
+    "SocialMediaIngestResult",
+    "SocialMediaRawCreate",
+    "SocialMediaRawResponse",
+    "SocialMediaStats",
     "SourceDocumentCreate",
     "SourceDocumentRead",
 ]
