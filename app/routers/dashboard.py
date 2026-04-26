@@ -82,17 +82,27 @@ def _signal_title(gs: GeoSignal, event: Event | None, competitor_name: str) -> s
 
 @router.get("/heatmap", response_model=list[HeatmapCountry])
 async def get_heatmap(
+    region: str | None = Query(None),
+    country_code: str | None = Query(None),
+    operating_model: str | None = Query(None),
     db: AsyncSession = Depends(get_db),
 ) -> list[HeatmapCountry]:
     cutoff_30d = datetime.now(UTC) - timedelta(days=30)
     cutoff_7d = datetime.now(UTC) - timedelta(days=7)
 
-    countries_result = await db.execute(
+    stmt = (
         select(Country, Region)
         .join(Region, Country.region_id == Region.id)
         .where(Country.is_active.is_(True))
-        .order_by(Country.code)
     )
+    if region:
+        stmt = stmt.where(Region.code == region.upper())
+    if country_code:
+        stmt = stmt.where(Country.code == country_code.upper())
+    if operating_model:
+        stmt = stmt.where(Country.operating_model == operating_model.upper())
+    stmt = stmt.order_by(Country.code)
+    countries_result = await db.execute(stmt)
     countries = [(c, r) for c, r in countries_result.all()]
 
     signals_result = await db.execute(
@@ -108,7 +118,7 @@ async def get_heatmap(
             "signals_7d": 0,
             "signals_30d": 0,
             "max_threat": 0,
-            "top_competitor": "Unknown",
+            "competitor_signals": {},
         }
         for c, _ in countries
     }
@@ -127,13 +137,25 @@ async def get_heatmap(
                 agg["signals_7d"] += 1
             if threat > agg["max_threat"]:
                 agg["max_threat"] = threat
-                agg["top_competitor"] = comp_name
+            # Track signal count per competitor for this country
+            comp_id = str(competitor.id) if competitor else "unknown"
+            agg["competitor_signals"][comp_id] = agg["competitor_signals"].get(comp_id, {"count": 0, "name": comp_name})
+            agg["competitor_signals"][comp_id]["count"] += 1
 
     result: list[HeatmapCountry] = []
     for c, r in countries:
-        agg = aggregates[cast(UUID, c.id)]
+        cid = cast(UUID, c.id)
+        agg = aggregates[cid]
         has_signals = agg["signals_30d"] > 0
         score = agg["max_threat"]
+        # Pick top competitor by signal count, tie-break by highest threat
+        top_comp = "Unknown"
+        if agg["competitor_signals"]:
+            top_comp_entry = max(
+                agg["competitor_signals"].values(),
+                key=lambda x: (x["count"], x["name"])
+            )
+            top_comp = top_comp_entry["name"]
         result.append(
             HeatmapCountry(
                 country_code=cast(str, c.code),
@@ -141,7 +163,7 @@ async def get_heatmap(
                 region=cast(str, r.code.value) if r.code else "",
                 highest_competitor_threat_score=score,
                 threat_level=cast(Any, _threat_level(score, has_signals)),
-                top_competitor_name=agg["top_competitor"] if has_signals else "Unknown",
+                top_competitor_name=top_comp if has_signals else "Unknown",
                 signal_count_7d=agg["signals_7d"],
                 signal_count_30d=agg["signals_30d"],
             )
@@ -156,6 +178,8 @@ async def get_timeline(
     source: str | None = Query(None),
     days: int = Query(default=30, ge=1, le=365),
     limit: int = Query(default=50, ge=1, le=500),
+    country_id: UUID | None = Query(None),
+    operating_model: str | None = Query(None),
     db: AsyncSession = Depends(get_db),
 ) -> list[TimelineSignal]:
     cutoff = datetime.now(UTC) - timedelta(days=days)
@@ -189,6 +213,19 @@ async def get_timeline(
         else:
             return []
 
+    if country_id:
+        stmt = stmt.where(GeoSignal.country_ids.contains([country_id]))
+
+    if operating_model:
+        model_country_result = await db.execute(
+            select(Country.id).where(Country.operating_model == operating_model.upper())
+        )
+        model_country_ids = [row[0] for row in model_country_result.all()]
+        if model_country_ids:
+            stmt = stmt.where(GeoSignal.country_ids.overlap(model_country_ids))
+        else:
+            return []
+
     stmt = stmt.order_by(GeoSignal.created_at.desc()).limit(limit)
     signals_result = await db.execute(stmt)
     signals = signals_result.all()
@@ -198,44 +235,72 @@ async def get_timeline(
         if gs.country_ids:
             all_country_ids.update(gs.country_ids)
 
-    country_names: dict[UUID, str] = {}
+    country_meta: dict[UUID, dict[str, str]] = {}
     if all_country_ids:
         country_result = await db.execute(
-            select(Country).where(Country.id.in_(all_country_ids))
+            select(Country, Region.code)
+            .join(Region, Country.region_id == Region.id)
+            .where(Country.id.in_(all_country_ids))
         )
-        for c in country_result.scalars().all():
-            country_names[cast(UUID, c.id)] = cast(str, c.name) or ""  # type: ignore[attr-defined]
+        for c, region_code in country_result.all():
+            cid = cast(UUID, c.id)
+            country_meta[cid] = {
+                "name": cast(str, c.name) or "",
+                "code": cast(str, c.code),
+                "region": cast(str, region_code.value) if hasattr(region_code, "value") else str(region_code),
+                "model": cast(str, c.operating_model.value) if c.operating_model else "",
+            }
 
-    result: list[TimelineSignal] = []
+    # Group signals by fingerprint to deduplicate multi-country entries
+    groups: dict[str, dict[str, Any]] = {}
     for gs, event, competitor in signals:
         comp_name = competitor.canonical_name if competitor else "Unknown"
         title = _signal_title(gs, event, comp_name)
 
+        # Fingerprint: title + source_url + date + competitor_id + molecule_id
+        date_key = gs.created_at.strftime("%Y-%m-%d") if gs.created_at else ""
+        fp = f"{title}|{gs.source_url or ''}|{date_key}|{gs.competitor_id or ''!s}|{gs.molecule_id or ''!s}"
+
+        if fp not in groups:
+            groups[fp] = {
+                "title": title,
+                "tier": gs.tier,
+                "source_type": gs.source_type,
+                "competitor_name": comp_name,
+                "created_at": gs.created_at,
+                "url": gs.source_url,
+                "event_date": event.event_date if event else None,
+                "country_codes": set(),
+            }
         if gs.country_ids:
-            if len(gs.country_ids) == 1:
-                country_name = country_names.get(gs.country_ids[0], "Unknown")
-            else:
-                names = [
-                    country_names.get(cid, "")
-                    for cid in gs.country_ids
-                    if cid in country_names
-                ]
-                country_name = names[0] if names else "Regional"
-                if len(names) > 1:
-                    country_name = f"{names[0]} +{len(names) - 1}"
+            for cid in gs.country_ids:
+                meta = country_meta.get(cid)
+                if meta:
+                    groups[fp]["country_codes"].add(meta["code"])
+
+    result: list[TimelineSignal] = []
+    for fp, g in list(groups.items())[:limit]:
+        codes = sorted(g["country_codes"])
+        if len(codes) == 1:
+            country_name = codes[0]
+        elif len(codes) > 1:
+            country_name = f"{codes[0]} +{len(codes) - 1} more"
         else:
             country_name = "Regional"
 
         result.append(
             TimelineSignal(
-                id=gs.id,
-                title=title,
-                tier=gs.tier,
-                source_type=gs.source_type,
+                id=fp,
+                title=g["title"],
+                tier=g["tier"],
+                source_type=g["source_type"],
                 country_name=country_name,
-                competitor_name=comp_name,
-                created_at=gs.created_at,
-                url=gs.source_url,
+                country_count=len(codes),
+                country_codes=codes,
+                competitor_name=g["competitor_name"],
+                created_at=g["created_at"],
+                url=g["url"],
+                event_date=g["event_date"],
             )
         )
     return result
@@ -243,6 +308,7 @@ async def get_timeline(
 
 @router.get("/competitors", response_model=list[CompetitorDashboard])
 async def get_competitors(
+    country_id: UUID | None = Query(None),
     db: AsyncSession = Depends(get_db),
 ) -> list[CompetitorDashboard]:
     competitors_result = await db.execute(
@@ -291,6 +357,17 @@ async def get_competitors(
         if gs.country_ids:
             comp_countries[cast(UUID, gs.competitor_id)].update(gs.country_ids)
 
+    all_active_country_ids: set[UUID] = set()
+    for cid_set in comp_countries.values():
+        all_active_country_ids.update(cid_set)
+    country_code_map: dict[UUID, str] = {}
+    if all_active_country_ids:
+        cc_result = await db.execute(
+            select(Country).where(Country.id.in_(all_active_country_ids))
+        )
+        for c in cc_result.scalars().all():
+            country_code_map[cast(UUID, c.id)] = cast(str, c.code)
+
     result: list[CompetitorDashboard] = []
     for c in competitors:
         cid = cast(UUID, c.id)
@@ -310,6 +387,15 @@ async def get_competitors(
         if primary and primary not in molecules:
             molecules.insert(0, primary)
 
+        comp_country_codes = sorted(
+            {country_code_map.get(uid, "") for uid in comp_countries.get(cid, set())}
+            - {""}
+        )
+
+        date_formatted = None
+        if latest_date:
+            date_formatted = latest_date.strftime("%b %Y - %H:%M")
+
         result.append(
             CompetitorDashboard(
                 id=cid,
@@ -317,11 +403,17 @@ async def get_competitors(
                 watch_list=_is_watch_list(cast(str, c.canonical_name)),
                 molecules=molecules,
                 active_countries_count=len(comp_countries.get(cid, set())),
+                country_codes=comp_country_codes,
                 latest_signal_date=latest_date,
+                latest_signal_date_formatted=date_formatted,
                 latest_signal_title=latest_title,
                 total_signals_count=total,
             )
         )
+
+    if country_id:
+        result = [r for r in result if country_id in comp_countries.get(r.id, set())]
+
     return result
 
 
@@ -385,6 +477,7 @@ async def get_sources(
 
 @router.get("/regions", response_model=list[RegionDashboard])
 async def get_regions(
+    operating_model: str | None = Query(None),
     db: AsyncSession = Depends(get_db),
 ) -> list[RegionDashboard]:
     cutoff_7d = datetime.now(UTC) - timedelta(days=7)
@@ -393,11 +486,16 @@ async def get_regions(
     regions_result = await db.execute(select(Region).order_by(Region.code))
     regions = list(regions_result.scalars().all())
 
-    countries_result = await db.execute(
+    countries_stmt = (
         select(Country, Region.code)
         .join(Region, Country.region_id == Region.id)
         .where(Country.is_active.is_(True))
     )
+    if operating_model:
+        countries_stmt = countries_stmt.where(
+            Country.operating_model == operating_model.upper()
+        )
+    countries_result = await db.execute(countries_stmt)
     region_countries: dict[str, list[Country]] = {}
     region_country_ids: dict[str, list[UUID]] = {}
     for country, region_code in countries_result.all():
@@ -457,16 +555,25 @@ async def get_regions(
             )
 
         top_country = "N/A"
+        top_country_signals = 0
         if country_max_threat:
             top_cid = max(country_max_threat, key=lambda k: country_max_threat[k])
             top_country_obj = next(
                 (c for c in countries if cast(UUID, c.id) == top_cid), None
             )
             top_country = cast(str, top_country_obj.name) if top_country_obj else "N/A"
+            top_country_signals = country_max_threat.get(top_cid, 0)
 
         top_competitor = "N/A"
+        top_competitor_signals = 0
         if competitor_signals:
             top_competitor = max(competitor_signals, key=lambda k: competitor_signals[k])
+            top_competitor_signals = competitor_signals.get(top_competitor, 0)
+
+        avg_threat_rationale = "Average of highest competitor threat scores across all countries in region"
+        top_country_rationale = f"Country with highest threat score: {top_country} (score: {top_country_signals})"
+        top_competitor_rationale = f"Competitor with most signals in region: {top_competitor} ({top_competitor_signals} signals)"
+        calculation_note = "Metrics calculated from live GeoSignal data. Updated every 60 seconds."
 
         result.append(
             RegionDashboard(
@@ -475,8 +582,12 @@ async def get_regions(
                 total_signals_7d=total_7d,
                 total_signals_30d=total_30d,
                 avg_threat_score=avg_threat,
+                avg_threat_rationale=avg_threat_rationale,
                 top_country_by_threat=top_country,
+                top_country_rationale=top_country_rationale,
                 top_competitor_by_presence=top_competitor,
+                top_competitor_rationale=top_competitor_rationale,
+                calculation_note=calculation_note,
             )
         )
     return result
@@ -487,13 +598,16 @@ async def get_html_dashboard(
     request: Request,
     db: AsyncSession = Depends(get_db),
 ) -> Any:
-    heatmap = await get_heatmap(db=db)
-    timeline = await get_timeline(
-        db=db, region=None, tier=None, source=None, days=30, limit=50
+    heatmap = await get_heatmap(
+        db=db, region=None, country_code=None, operating_model=None
     )
-    competitors = await get_competitors(db=db)
+    timeline = await get_timeline(
+        db=db, region=None, tier=None, source=None, days=30, limit=50,
+        country_id=None, operating_model=None
+    )
+    competitors = await get_competitors(db=db, country_id=None)
     sources = await get_sources(db=db)
-    regions = await get_regions(db=db)
+    regions = await get_regions(db=db, operating_model=None)
 
     total_signals = sum(c.signal_count_30d for c in heatmap)
     active_countries = sum(1 for c in heatmap if c.signal_count_30d > 0)
@@ -508,6 +622,26 @@ async def get_html_dashboard(
     pending_noise = noise_result.scalar() or 0
 
     now = datetime.now(UTC)
+
+    russia_result = await db.execute(
+        select(Country).where(Country.code == "RU")
+    )
+    russia = russia_result.scalar_one_or_none()
+    russia_country_id = str(russia.id) if russia else ""
+
+    all_countries_result = await db.execute(
+        select(Country, Region.code)
+        .join(Region, Country.region_id == Region.id)
+        .where(Country.is_active.is_(True))
+    )
+    country_models: dict[str, str] = {}
+    country_regions: dict[str, str] = {}
+    for c, region_code in all_countries_result.all():
+        code = cast(str, c.code)
+        model = cast(str, c.operating_model.value) if c.operating_model else ""
+        region = cast(str, region_code.value) if hasattr(region_code, "value") else str(region_code)
+        country_models[code] = model
+        country_regions[code] = region
 
     return templates.TemplateResponse(
         request,
@@ -525,5 +659,8 @@ async def get_html_dashboard(
             "dormant_sources": dormant_sources,
             "pending_noise": pending_noise,
             "now": now,
+            "russia_country_id": russia_country_id,
+            "country_models": country_models,
+            "country_regions": country_regions,
         },
     )

@@ -111,37 +111,82 @@
   /* Heatmap */
   .heatmap-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
     gap: 0.75rem;
   }
-  .country-card {
+  .heatmap-card {
     background: var(--bg-card);
     border: 1px solid var(--border);
-    border-radius: 0.5rem;
-    padding: 0.875rem;
+    border-radius: 0.75rem;
+    padding: 1rem;
     position: relative;
     overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
-  .country-card::before {
+  .heatmap-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+  }
+  .heatmap-card::before {
     content: '';
     position: absolute;
     top: 0; left: 0; right: 0;
     height: 3px;
   }
-  .country-card.level-monitoring::before { background: #6b7280; }
-  .country-card.level-low::before { background: var(--accent-teal); }
-  .country-card.level-medium::before { background: var(--accent-amber); }
-  .country-card.level-high::before { background: var(--accent-orange); }
-  .country-card.level-critical::before { background: var(--accent-red); }
+  .heatmap-card.threat-monitoring {
+    background: linear-gradient(135deg, rgba(107, 114, 128, 0.06) 0%, rgba(107, 114, 128, 0.02) 100%);
+    border-color: rgba(107, 114, 128, 0.25);
+  }
+  .heatmap-card.threat-monitoring::before { background: #6b7280; }
+  .heatmap-card.threat-low {
+    background: linear-gradient(135deg, rgba(52, 211, 153, 0.08) 0%, rgba(52, 211, 153, 0.02) 100%);
+    border-color: rgba(52, 211, 153, 0.3);
+  }
+  .heatmap-card.threat-low::before { background: #34d399; }
+  .heatmap-card.threat-medium {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(245, 158, 11, 0.02) 100%);
+    border-color: rgba(245, 158, 11, 0.35);
+  }
+  .heatmap-card.threat-medium::before { background: #f59e0b; }
+  .heatmap-card.threat-high {
+    background: linear-gradient(135deg, rgba(249, 115, 22, 0.12) 0%, rgba(249, 115, 22, 0.03) 100%);
+    border-color: rgba(249, 115, 22, 0.4);
+    box-shadow: 0 0 20px rgba(249, 115, 22, 0.08);
+  }
+  .heatmap-card.threat-high::before { background: #f97316; }
+  .heatmap-card.threat-critical {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(239, 68, 68, 0.03) 100%);
+    border-color: rgba(239, 68, 68, 0.45);
+    box-shadow: 0 0 20px rgba(239, 68, 68, 0.1);
+  }
+  .heatmap-card.threat-critical::before { background: #ef4444; }
   .country-code { font-size: 0.75rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; }
   .country-name { font-size: 0.9375rem; font-weight: 600; margin: 0.15rem 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .country-meta { font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.25rem; }
-  .country-threat { font-size: 0.8125rem; font-weight: 600; margin-top: 0.35rem; }
-  .country-threat.level-monitoring { color: #6b7280; }
-  .country-threat.level-low { color: var(--accent-teal); }
-  .country-threat.level-medium { color: var(--accent-amber); }
-  .country-threat.level-high { color: var(--accent-orange); }
-  .country-threat.level-critical { color: var(--accent-red); }
+  .threat-score { font-size: 0.875rem; font-weight: 700; margin-top: 0.35rem; }
+  .threat-score.threat-monitoring { color: #6b7280; }
+  .threat-score.threat-low { color: #34d399; }
+  .threat-score.threat-medium { color: #f59e0b; }
+  .threat-score.threat-high { color: #f97316; }
+  .threat-score.threat-critical { color: #ef4444; }
+  .threat-bar {
+    height: 4px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 2px;
+    margin-top: 0.4rem;
+    overflow: hidden;
+  }
+  .threat-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.5s ease;
+  }
+  .threat-bar-fill.threat-low { background: #34d399; }
+  .threat-bar-fill.threat-medium { background: #f59e0b; }
+  .threat-bar-fill.threat-high { background: #f97316; }
+  .threat-bar-fill.threat-critical { background: #ef4444; }
+  .top-competitor { font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.35rem; }
+  .top-competitor strong { color: var(--text-primary); }
 
   /* Timeline */
   .timeline-list {
@@ -184,6 +229,15 @@
   .badge-tier-1 { background: rgba(239, 68, 68, 0.15); color: var(--accent-red); }
   .badge-tier-2 { background: rgba(245, 158, 11, 0.15); color: var(--accent-amber); }
   .badge-tier-3 { background: rgba(59, 130, 246, 0.15); color: var(--accent-blue); }
+  .country-badge {
+    display: inline-block;
+    background: #374151;
+    color: #d1d5db;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    margin-left: 4px;
+  }
 
   /* Competitor Table */
   .table-wrap {
@@ -215,6 +269,20 @@
     background: rgba(245, 158, 11, 0.15);
     color: var(--accent-amber);
   }
+  th[data-sort] {
+    cursor: pointer;
+    user-select: none;
+  }
+  th[data-sort]:hover {
+    color: var(--text-primary);
+  }
+  th[data-sort]::after {
+    content: ' ↕';
+    font-size: 0.7rem;
+    opacity: 0.5;
+  }
+  th[data-sort].sort-asc::after { content: ' ↑'; opacity: 1; }
+  th[data-sort].sort-desc::after { content: ' ↓'; opacity: 1; }
 
   /* Regions */
   .region-grid {
@@ -239,6 +307,19 @@
   .region-stat { display: flex; justify-content: space-between; font-size: 0.875rem; margin: 0.35rem 0; }
   .region-stat span:first-child { color: var(--text-secondary); }
   .region-stat span:last-child { font-weight: 500; }
+  .info-tooltip {
+    color: #6b7280;
+    font-size: 12px;
+    cursor: help;
+    margin-left: 4px;
+  }
+  .info-tooltip:hover { color: #d1d5db; }
+  .region-note {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin-top: 0.5rem;
+    font-style: italic;
+  }
 
   /* Source Health */
   .source-grid {
@@ -280,6 +361,64 @@
   .noise-banner.hidden { display: none; }
   .noise-icon { font-size: 1.1rem; }
 
+  /* Filter Bar */
+  .filter-bar {
+    display: flex;
+    gap: 24px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+  }
+  .filter-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .filter-label {
+    color: #9ca3af;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+  }
+  .filter-btn {
+    background: #1f2937;
+    border: 1px solid #374151;
+    color: #d1d5db;
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .filter-btn:hover {
+    border-color: #6b46c1;
+    color: #fff;
+  }
+  .filter-btn.active {
+    background: #6b46c1;
+    border-color: #6b46c1;
+    color: #fff;
+  }
+  .filter-btn.disabled {
+    opacity: 0.25;
+    pointer-events: none;
+    cursor: not-allowed;
+    border-color: #374151;
+    color: #6b7280;
+  }
+  .filter-btn.disabled:hover {
+    border-color: #374151;
+    color: #6b7280;
+  }
+
+  /* Russia card */
+  .russia-card {
+    background: linear-gradient(135deg, #1f2937 0%, #2d1b4e 100%);
+    border: 1px solid #6b46c1;
+  }
+  .russia-card .region-name { color: #c4b5fd; }
+
   /* Scrollbar */
   ::-webkit-scrollbar { width: 8px; height: 8px; }
   ::-webkit-scrollbar-track { background: var(--bg-secondary); }
@@ -288,6 +427,7 @@
 
   @media (max-width: 640px) {
     .header-title { font-size: 1.15rem; }
+    .filter-bar { flex-direction: column; gap: 12px; }
     .kpi-grid { grid-template-columns: repeat(2, 1fr); }
     .heatmap-grid { grid-template-columns: repeat(2, 1fr); }
     .region-grid { grid-template-columns: 1fr; }
@@ -311,6 +451,25 @@
 </header>
 
 <div class="container">
+
+  <!-- Filter Bar -->
+  <div class="filter-bar">
+    <div class="filter-group">
+      <span class="filter-label">Region:</span>
+      <button class="filter-btn active" data-filter="region" data-value="all">All</button>
+      <button class="filter-btn" data-filter="region" data-value="CEE_EU">CEE/EU</button>
+      <button class="filter-btn" data-filter="region" data-value="LATAM">LATAM</button>
+      <button class="filter-btn" data-filter="region" data-value="MEA">MEA</button>
+      <button class="filter-btn" data-filter="region" data-value="Russia">Russia</button>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">Operating Model:</span>
+      <button class="filter-btn active" data-filter="model" data-value="all">All</button>
+      <button class="filter-btn" data-filter="model" data-value="LPM">LPM</button>
+      <button class="filter-btn" data-filter="model" data-value="OPM">OPM</button>
+      <button class="filter-btn" data-filter="model" data-value="Passive">Passive</button>
+    </div>
+  </div>
 
   <!-- KPI Cards -->
   <div class="kpi-grid">
@@ -345,14 +504,17 @@
     <div class="section-title">🗺️ Threat Heatmap</div>
     <div class="heatmap-grid">
       {% for c in heatmap %}
-      <div class="country-card level-{{ c.threat_level.lower() }}">
+      <div class="heatmap-card threat-{{ c.threat_level.lower() }}" data-region="{{ c.region }}" data-country="{{ c.country_code }}" data-model="{{ country_models.get(c.country_code, '') }}">
         <div class="country-code">{{ c.country_code }}</div>
         <div class="country-name">{{ c.country_name }}</div>
         <div class="country-meta">{{ c.region }} • {{ c.signal_count_30d }} signals</div>
-        <div class="country-threat level-{{ c.threat_level.lower() }}">
+        <div class="threat-score threat-{{ c.threat_level.lower() }}">
           {{ c.threat_level }} {% if c.highest_competitor_threat_score > 0 %}({{ c.highest_competitor_threat_score }}){% endif %}
         </div>
-        <div class="country-meta">{{ c.top_competitor_name }}</div>
+        <div class="threat-bar">
+          <div class="threat-bar-fill threat-{{ c.threat_level.lower() }}" style="width: {{ c.highest_competitor_threat_score }}%;"></div>
+        </div>
+        <div class="top-competitor">Top: <strong>{{ c.top_competitor_name }}</strong></div>
       </div>
       {% endfor %}
     </div>
@@ -363,7 +525,7 @@
     <div class="section-title">📡 Signal Timeline</div>
     <div class="timeline-list">
       {% for s in timeline %}
-      <div class="timeline-item">
+      <div class="timeline-item" data-countries="{{ s.country_codes | join(' ') }}">
         <div class="timeline-dot tier-{{ s.tier }}"></div>
         <div class="timeline-body">
           <div class="timeline-title">
@@ -371,7 +533,12 @@
             <span class="timeline-badge badge-tier-{{ s.tier }}">Tier {{ s.tier }}</span>
           </div>
           <div class="timeline-meta">
-            {{ s.created_at.strftime('%b %d, %Y') }} • {{ s.competitor_name }} • {{ s.country_name }}
+            {{ s.created_at.strftime('%b %d, %Y') }} • {{ s.competitor_name }}
+            {% if s.country_count > 1 %}
+              <span class="country-badge">{{ s.country_codes[0] }} +{{ s.country_count - 1 }} more</span>
+            {% elif s.country_codes %}
+              <span class="country-badge">{{ s.country_codes[0] }}</span>
+            {% endif %}
             {% if s.source_type %}• {{ s.source_type }}{% endif %}
             {% if s.url %}• <a href="{{ s.url }}" target="_blank" rel="noopener">Source ↗</a>{% endif %}
           </div>
@@ -391,33 +558,33 @@
   <div class="section">
     <div class="section-title">🎯 Competitor Tracker</div>
     <div class="table-wrap">
-      <table>
+      <table class="competitor-table">
         <thead>
           <tr>
-            <th>Competitor</th>
-            <th>Watch List</th>
-            <th>Molecules</th>
-            <th>Active Countries</th>
-            <th>Latest Signal</th>
-            <th>Total Signals</th>
+            <th data-sort="name">Competitor ↕</th>
+            <th data-sort="watch_list">Watch List ↕</th>
+            <th data-sort="molecules">Molecules ↕</th>
+            <th data-sort="active_countries">Active Countries ↕</th>
+            <th data-sort="latest_signal_date">Latest Signal ↕</th>
+            <th data-sort="total_signals">Total Signals ↕</th>
           </tr>
         </thead>
         <tbody>
           {% for c in competitors %}
-          <tr>
-            <td><strong>{{ c.name }}</strong></td>
-            <td>{% if c.watch_list %}<span class="watch-list-badge">Watch</span>{% else %}—{% endif %}</td>
-            <td>{{ c.molecules | join(', ') if c.molecules else '—' }}</td>
-            <td>{{ c.active_countries_count }}</td>
-            <td>
+          <tr data-countries="{{ c.country_codes | join(' ') }}">
+            <td data-col="name" data-sort-value="{{ c.name.lower() }}"><strong>{{ c.name }}</strong></td>
+            <td data-col="watch_list" data-sort-value="{{ 1 if c.watch_list else 0 }}">{% if c.watch_list %}<span class="watch-list-badge">Watch</span>{% else %}—{% endif %}</td>
+            <td data-col="molecules" data-sort-value="{{ c.molecules | join(', ') | lower }}">{{ c.molecules | join(', ') if c.molecules else '—' }}</td>
+            <td data-col="active_countries" data-sort-value="{{ c.active_countries_count }}">{{ c.active_countries_count }}</td>
+            <td data-col="latest_signal_date" data-sort-value="{{ c.latest_signal_date.isoformat() if c.latest_signal_date else '' }}">
               {% if c.latest_signal_title %}
                 <div style="max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="{{ c.latest_signal_title }}">
                   {{ c.latest_signal_title }}
                 </div>
-                <div style="font-size:0.75rem;color:var(--text-secondary)">{{ c.latest_signal_date.strftime('%b %d, %Y') }}</div>
+                <div style="font-size:0.75rem;color:var(--text-secondary)">{{ c.latest_signal_date_formatted or 'N/A' }}</div>
               {% else %}—{% endif %}
             </td>
-            <td>{{ c.total_signals_count }}</td>
+            <td data-col="total_signals" data-sort-value="{{ c.total_signals_count }}">{{ c.total_signals_count }}</td>
           </tr>
           {% endfor %}
         </tbody>
@@ -430,18 +597,52 @@
     <div class="section-title">🌐 Regional Breakdown</div>
     <div class="region-grid">
       {% for r in regions %}
-      <div class="region-card">
+      <div class="region-card" data-region="{{ r.region_code }}">
         <div class="region-header">
           <div class="region-name">{{ r.region_code }}</div>
           <div class="region-count">{{ r.country_count }} countries</div>
         </div>
         <div class="region-stat"><span>Signals (7d)</span> <span>{{ r.total_signals_7d }}</span></div>
         <div class="region-stat"><span>Signals (30d)</span> <span>{{ r.total_signals_30d }}</span></div>
-        <div class="region-stat"><span>Avg Threat</span> <span>{{ r.avg_threat_score }}</span></div>
-        <div class="region-stat"><span>Top Country</span> <span>{{ r.top_country_by_threat }}</span></div>
-        <div class="region-stat"><span>Top Competitor</span> <span>{{ r.top_competitor_by_presence }}</span></div>
+        <div class="region-stat">
+          <span>
+            Avg Threat
+            <span class="info-tooltip" title="{{ r.avg_threat_rationale }}">ⓘ</span>
+          </span>
+          <span>{{ r.avg_threat_score }}</span>
+        </div>
+        <div class="region-stat">
+          <span>
+            Top Country
+            <span class="info-tooltip" title="{{ r.top_country_rationale }}">ⓘ</span>
+          </span>
+          <span>{{ r.top_country_by_threat }}</span>
+        </div>
+        <div class="region-stat">
+          <span>
+            Top Competitor
+            <span class="info-tooltip" title="{{ r.top_competitor_rationale }}">ⓘ</span>
+          </span>
+          <span>{{ r.top_competitor_by_presence }}</span>
+        </div>
+        <div class="region-note">{{ r.calculation_note }}</div>
       </div>
       {% endfor %}
+      {% set ru = heatmap | selectattr('country_code', 'equalto', 'RU') | list %}
+      {% if ru %}
+      {% set russia_data = ru[0] %}
+      <div class="region-card russia-card" id="russia-mini-card" style="display:none;">
+        <div class="region-header">
+          <div class="region-name">🇷🇺 Russia</div>
+          <div class="region-count">CEE_EU • {{ russia_data.signal_count_30d }} signals</div>
+        </div>
+        <div class="region-stat"><span>Threat Level</span> <span>{{ russia_data.threat_level }}</span></div>
+        <div class="region-stat"><span>Threat Score</span> <span>{{ russia_data.highest_competitor_threat_score }}</span></div>
+        <div class="region-stat"><span>Top Competitor</span> <span>{{ russia_data.top_competitor_name }}</span></div>
+        <div class="region-stat"><span>Signals (7d)</span> <span>{{ russia_data.signal_count_7d }}</span></div>
+        <div class="region-stat"><span>Operating Model</span> <span>{{ country_models.get('RU', 'N/A') }}</span></div>
+      </div>
+      {% endif %}
     </div>
   </div>
 
@@ -477,6 +678,269 @@
 </div>
 
 <script>
+  const countryRegions = {{ country_regions | tojson }};
+  const countryModels = {{ country_models | tojson }};
+  const russiaCode = 'RU';
+
+  const filterState = { region: 'all', model: 'all' };
+
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const group = btn.dataset.filter;
+      const value = btn.dataset.value;
+
+      // If clicking a disabled button, ignore
+      if (btn.classList.contains('disabled')) return;
+
+      // Update active state visually
+      document.querySelectorAll(`.filter-btn[data-filter="${group}"]`).forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      // Check if this would make the OTHER filter invalid
+      if (group === 'region') {
+          const modelsForThisRegion = getAvailableModelsForRegion(value);
+          if (filterState.model !== 'all' && !modelsForThisRegion.includes(filterState.model)) {
+              // Auto-reset model to "All" because the current model doesn't exist in this region
+              filterState.model = 'all';
+              document.querySelectorAll('.filter-btn[data-filter="model"]').forEach(b => b.classList.remove('active'));
+              document.querySelector('.filter-btn[data-filter="model"][data-value="all"]').classList.add('active');
+          }
+      } else if (group === 'model') {
+          const regionsForThisModel = getAvailableRegionsForModel(value);
+          if (filterState.region !== 'all' && !regionsForThisModel.includes(filterState.region)) {
+              // Auto-reset region to "All" because the current region doesn't have this model
+              filterState.region = 'all';
+              document.querySelectorAll('.filter-btn[data-filter="region"]').forEach(b => b.classList.remove('active'));
+              document.querySelector('.filter-btn[data-filter="region"][data-value="all"]').classList.add('active');
+          }
+      }
+
+      filterState[group] = value;
+      applyFilters();
+    });
+  });
+
+  function getTimelineItemRegions(item) {
+    const codes = (item.dataset.countries || '').split(' ').filter(Boolean);
+    const regions = new Set();
+    codes.forEach(code => {
+      const r = countryRegions[code];
+      if (r) regions.add(r);
+    });
+    return Array.from(regions);
+  }
+
+  function getTimelineItemModels(item) {
+    const codes = (item.dataset.countries || '').split(' ').filter(Boolean);
+    const models = new Set();
+    codes.forEach(code => {
+      const m = countryModels[code];
+      if (m) models.add(m);
+    });
+    return Array.from(models);
+  }
+
+  function matchesRegion(datasetRegion, datasetCountry, itemRegions, itemCountries) {
+    if (filterState.region === 'all') return true;
+    if (filterState.region === 'Russia') {
+      if (datasetCountry === russiaCode) return true;
+      if (itemCountries && itemCountries.includes(russiaCode)) return true;
+      return false;
+    }
+    if (datasetRegion === filterState.region) return true;
+    if (itemRegions && itemRegions.includes(filterState.region)) return true;
+    return false;
+  }
+
+  function matchesModel(datasetModel, itemModels) {
+    if (filterState.model === 'all') return true;
+    if (datasetModel === filterState.model) return true;
+    if (itemModels && itemModels.includes(filterState.model)) return true;
+    return false;
+  }
+
+  function getAvailableRegionsForModel(model) {
+    const regions = new Set();
+    document.querySelectorAll('.heatmap-card').forEach(card => {
+      if (model === 'all' || card.dataset.model === model) {
+        const region = card.dataset.region;
+        const country = card.dataset.country;
+        if (country === 'RU') regions.add('Russia');
+        regions.add(region);
+      }
+    });
+    return Array.from(regions);
+  }
+
+  function getAvailableModelsForRegion(region) {
+    const models = new Set();
+    document.querySelectorAll('.heatmap-card').forEach(card => {
+      let matches = false;
+      if (region === 'all') {
+        matches = true;
+      } else if (region === 'Russia') {
+        matches = card.dataset.country === 'RU';
+      } else {
+        matches = card.dataset.region === region;
+      }
+      if (matches) {
+        models.add(card.dataset.model);
+      }
+    });
+    return Array.from(models);
+  }
+
+  function updateFilterButtonStates() {
+    const activeRegion = filterState.region;
+    const activeModel = filterState.model;
+
+    // Region buttons: enable only regions that have at least one country with the selected model
+    const availableRegions = getAvailableRegionsForModel(activeModel);
+    document.querySelectorAll('.filter-btn[data-filter="region"]').forEach(btn => {
+      const val = btn.dataset.value;
+      const isAvailable = val === 'all' || availableRegions.includes(val);
+      btn.classList.toggle('disabled', !isAvailable);
+    });
+
+    // Model buttons: enable only models that exist in the selected region
+    const availableModels = getAvailableModelsForRegion(activeRegion);
+    document.querySelectorAll('.filter-btn[data-filter="model"]').forEach(btn => {
+      const val = btn.dataset.value;
+      const isAvailable = val === 'all' || availableModels.includes(val);
+      btn.classList.toggle('disabled', !isAvailable);
+    });
+  }
+
+  function applyFilters() {
+    // Heatmap cards
+    document.querySelectorAll('.heatmap-card').forEach(card => {
+      const regionMatch = matchesRegion(card.dataset.region, card.dataset.country, null, null);
+      const modelMatch = matchesModel(card.dataset.model, null);
+      card.style.display = (regionMatch && modelMatch) ? 'block' : 'none';
+    });
+
+    // Timeline items
+    document.querySelectorAll('.timeline-item').forEach(item => {
+      const itemRegions = getTimelineItemRegions(item);
+      const itemModels = getTimelineItemModels(item);
+      const itemCountries = (item.dataset.countries || '').split(' ').filter(Boolean);
+      const regionMatch = matchesRegion(null, null, itemRegions, itemCountries);
+      const modelMatch = matchesModel(null, itemModels);
+      item.style.display = (regionMatch && modelMatch) ? 'flex' : 'none';
+    });
+
+    // Competitor rows
+    document.querySelectorAll('tbody tr[data-countries]').forEach(row => {
+      const rowCountries = (row.dataset.countries || '').split(' ').filter(Boolean);
+      const rowRegions = new Set();
+      const rowModels = new Set();
+      rowCountries.forEach(code => {
+        const r = countryRegions[code];
+        const m = countryModels[code];
+        if (r) rowRegions.add(r);
+        if (m) rowModels.add(m);
+      });
+      const regionMatch = matchesRegion(null, null, Array.from(rowRegions), rowCountries);
+      const modelMatch = matchesModel(null, Array.from(rowModels));
+      row.style.display = (regionMatch && modelMatch) ? 'table-row' : 'none';
+    });
+
+    // Region cards
+    document.querySelectorAll('.region-card').forEach(card => {
+      if (card.id === 'russia-mini-card') {
+        card.style.display = (filterState.region === 'Russia') ? 'block' : 'none';
+        return;
+      }
+      const cardRegion = card.dataset.region;
+      if (filterState.region === 'all') {
+        card.style.display = 'block';
+      } else if (filterState.region === 'Russia') {
+        card.style.display = 'none';
+      } else {
+        card.style.display = (cardRegion === filterState.region) ? 'block' : 'none';
+      }
+    });
+
+    // After all filtering is done, update button states
+    updateFilterButtonStates();
+
+    // Update KPI counts based on visible items
+    updateVisibleCounts();
+  }
+
+  function updateVisibleCounts() {
+    const visibleCards = document.querySelectorAll('.heatmap-card');
+    let visibleSignals = 0;
+    let visibleActive = 0;
+    visibleCards.forEach(card => {
+      if (card.style.display === 'none') return;
+      const count30d = parseInt(card.querySelector('.country-meta')?.textContent?.match(/(\d+) signals/)?.[1] || '0', 10);
+      visibleSignals += count30d;
+      if (count30d > 0) visibleActive++;
+    });
+
+    const totalSignalsEl = document.querySelector('.kpi-grid .kpi-card:nth-child(1) .kpi-value');
+    const activeCountriesEl = document.querySelector('.kpi-grid .kpi-card:nth-child(2) .kpi-value');
+    if (totalSignalsEl) totalSignalsEl.childNodes[0].textContent = visibleSignals;
+    if (activeCountriesEl) {
+      const suffix = activeCountriesEl.querySelector('span');
+      activeCountriesEl.childNodes[0].textContent = visibleActive + ' ';
+      if (suffix) activeCountriesEl.appendChild(suffix);
+    }
+  }
+
+  // Sortable competitor table
+  let sortState = { column: null, direction: 'asc' };
+
+  document.querySelectorAll('th[data-sort]').forEach(th => {
+    th.addEventListener('click', () => {
+      const column = th.dataset.sort;
+      if (sortState.column === column) {
+        sortState.direction = sortState.direction === 'asc' ? 'desc' : 'asc';
+      } else {
+        sortState.column = column;
+        sortState.direction = 'desc';
+      }
+      sortTable(column, sortState.direction);
+    });
+  });
+
+  function sortTable(column, direction) {
+    const tbody = document.querySelector('.competitor-table tbody');
+    if (!tbody) return;
+    const rows = Array.from(tbody.querySelectorAll('tr'));
+
+    rows.sort((a, b) => {
+      const aCell = a.querySelector(`td[data-col="${column}"]`);
+      const bCell = b.querySelector(`td[data-col="${column}"]`);
+      let aVal = aCell ? (aCell.dataset.sortValue || '') : '';
+      let bVal = bCell ? (bCell.dataset.sortValue || '') : '';
+
+      const aNum = parseFloat(aVal);
+      const bNum = parseFloat(bVal);
+      if (!isNaN(aNum) && !isNaN(bNum) && aVal !== '' && bVal !== '') {
+        if (aNum < bNum) return direction === 'asc' ? -1 : 1;
+        if (aNum > bNum) return direction === 'asc' ? 1 : -1;
+        return 0;
+      }
+
+      if (aVal < bVal) return direction === 'asc' ? -1 : 1;
+      if (aVal > bVal) return direction === 'asc' ? 1 : -1;
+      return 0;
+    });
+
+    rows.forEach(row => tbody.appendChild(row));
+
+    // Update sort indicator arrows
+    document.querySelectorAll('th[data-sort]').forEach(th => {
+      th.classList.remove('sort-asc', 'sort-desc');
+    });
+    const activeTh = document.querySelector(`th[data-sort="${column}"]`);
+    if (activeTh) {
+      activeTh.classList.add(direction === 'asc' ? 'sort-asc' : 'sort-desc');
+    }
+  }
+
   // Simple auto-refresh every 60 seconds
   setInterval(function() {
     if (document.visibilityState === 'visible') {

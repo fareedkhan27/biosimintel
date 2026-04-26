@@ -22,14 +22,17 @@ class HeatmapCountry(BaseModel):
 
 
 class TimelineSignal(BaseModel):
-    id: UUID
+    id: str
     title: str
     tier: int
     source_type: str | None
     country_name: str
+    country_count: int
+    country_codes: list[str] = Field(default_factory=list)
     competitor_name: str
     created_at: datetime
     url: str | None
+    event_date: datetime | None = None
 
 
 class CompetitorDashboard(BaseModel):
@@ -38,7 +41,9 @@ class CompetitorDashboard(BaseModel):
     watch_list: bool
     molecules: list[str]
     active_countries_count: int
+    country_codes: list[str] = Field(default_factory=list)
     latest_signal_date: datetime | None
+    latest_signal_date_formatted: str | None = None
     latest_signal_title: str | None
     total_signals_count: int
 
@@ -57,5 +62,9 @@ class RegionDashboard(BaseModel):
     total_signals_7d: int
     total_signals_30d: int
     avg_threat_score: float
+    avg_threat_rationale: str
     top_country_by_threat: str
+    top_country_rationale: str
     top_competitor_by_presence: str
+    top_competitor_rationale: str
+    calculation_note: str
