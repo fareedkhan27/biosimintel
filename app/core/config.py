@@ -45,6 +45,11 @@ class Settings(BaseSettings):
     PUBMED_POLL_DAY: str = "monday"
     PUBMED_LOOKBACK_DAYS: int = 14
 
+    USPTO_ENABLED: bool = True
+    USPTO_API_BASE_URL: str = "https://api.patentsview.org"
+    USPTO_POLL_DAY: str = "tuesday"
+    USPTO_LOOKBACK_DAYS: int = 14
+
     SMTP_HOST: str = ""
     SMTP_PORT: int = 587
     SMTP_USER: str = ""

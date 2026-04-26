@@ -20,6 +20,7 @@ from app.api.v1 import (
     sec_filings,
     threat_matrix,
     timeline,
+    uspto,
     webhooks,
 )
 
@@ -43,3 +44,4 @@ api_router.include_router(threat_matrix.router, prefix="/threat-matrix", tags=["
 api_router.include_router(ema_epar.router, tags=["ema-epar"])
 api_router.include_router(openfda.router, tags=["openfda"])
 api_router.include_router(pubmed.router, tags=["pubmed"])
+api_router.include_router(uspto.router, tags=["uspto"])

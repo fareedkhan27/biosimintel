@@ -18,6 +18,7 @@ from app.models.review import Review
 from app.models.scoring_rule import ScoringRule
 from app.models.signal import GeoSignal
 from app.models.source_document import SourceDocument
+from app.models.uspto import UsptoEntry, UsptoRawPoll
 
 __all__ = [
     "Competitor",
@@ -44,4 +45,6 @@ __all__ = [
     "Review",
     "ScoringRule",
     "SourceDocument",
+    "UsptoEntry",
+    "UsptoRawPoll",
 ]

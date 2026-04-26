@@ -35,6 +35,7 @@ class SignalType(enum.StrEnum):
     PUBLICATION_SAFETY = "publication_safety"
     PUBLICATION_RWE = "publication_rwe"
     PUBLICATION_GENERAL = "publication_general"
+    PATENT_FILING = "patent_filing"
 
 
 class Confidence(enum.StrEnum):
