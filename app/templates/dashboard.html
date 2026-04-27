@@ -448,6 +448,11 @@
       <span class="badge badge-amber">Opdivo (nivolumab) Focus</span>
     </div>
   </div>
+  <div class="header-inner" style="margin-top:0.5rem;">
+    <div class="molecule-focus" style="font-size:0.875rem;color:var(--text-secondary);">
+      🔬 Focus: <strong style="color:var(--text-primary);">Nivolumab (Opdivo)</strong> + <strong style="color:var(--text-primary);">Ipilimumab (Yervoy)</strong> biosimilar intelligence
+    </div>
+  </div>
 </header>
 
 <div class="container">
@@ -476,6 +481,9 @@
     <div class="kpi-card">
       <div class="kpi-label">Total Signals (30d)</div>
       <div class="kpi-value text-blue">{{ total_signals }}</div>
+      <div class="kpi-subtitle" style="font-size:0.75rem;color:var(--text-secondary);margin-top:0.25rem;">
+        Unique events: {{ total_signals_unique }} • Per-country tags: {{ total_signals - total_signals_unique }}
+      </div>
     </div>
     <div class="kpi-card">
       <div class="kpi-label">Active Countries</div>
@@ -626,6 +634,9 @@
           <span>{{ r.top_competitor_by_presence }}</span>
         </div>
         <div class="region-note">{{ r.calculation_note }}</div>
+        {% if r.calculation_note and 'All signals ingested' in r.calculation_note %}
+        <div class="region-date-note" style="font-size:0.75rem;color:var(--accent-amber);margin-top:0.25rem;">{{ r.calculation_note }}</div>
+        {% endif %}
       </div>
       {% endfor %}
       {% set ru = heatmap | selectattr('country_code', 'equalto', 'RU') | list %}
@@ -671,7 +682,23 @@
     </div>
   </div>
 
-  <footer style="text-align:center;padding:2rem 0;color:var(--text-secondary);font-size:0.75rem;">
+  <div class="audit-trail" style="background:var(--bg-card);border:1px solid var(--border);border-radius:0.5rem;padding:1rem;margin-top:1.5rem;">
+    <h4 style="font-size:0.875rem;font-weight:600;margin-bottom:0.5rem;color:var(--text-primary);">🔍 Data Audit Trail</h4>
+    <ul style="font-size:0.75rem;color:var(--text-secondary);margin:0;padding-left:1.25rem;line-height:1.6;">
+      <li>Scope: Nivolumab (Opdivo) + Ipilimumab (Yervoy) only</li>
+      <li>Signal counts: Per-country GeoSignal rows, last 30 days</li>
+      <li>Threat scores: From CompetitorCapability table per country region</li>
+      <li>Competitor assignments: Verified via CompetitorMoleculeAssignment</li>
+      <li>Last refresh: <span id="last-refresh">{{ now.strftime('%B %d, %Y at %H:%M UTC') }}</span></li>
+    </ul>
+    <p style="font-size:11px;color:#6b7280;margin-top:0.5rem;margin-bottom:0;">
+      If any number appears suspicious, verify against primary sources:
+      <a href="https://clinicaltrials.gov" target="_blank" rel="noopener">ClinicalTrials.gov</a> |
+      <a href="https://www.ema.europa.eu" target="_blank" rel="noopener">EMA EPAR</a> |
+      <a href="https://api.fda.gov" target="_blank" rel="noopener">openFDA</a>
+    </p>
+  </div>
+  <footer style="text-align:center;padding:1rem 0;color:var(--text-secondary);font-size:0.75rem;">
     Biosim Geo-Intelligence v1.0 • Read-only Executive Dashboard • {{ now.strftime('%Y') }}
   </footer>
 
