@@ -28,7 +28,6 @@ from app.schemas.intelligence import (
 )
 from app.services.indication_heatmap import build_indication_landscape
 from app.services.intelligence_alerts import detect_threshold_breaches
-from app.services.llm_insights import generate_executive_narrative
 from app.services.predictive_timeline import build_launch_timeline, format_stage
 from app.services.regulatory_risk import calculate_regulatory_risk_weights
 from app.utils.threat_interpretation import THREAT_GUIDE_TEXT, interpret_threat_score
@@ -570,8 +569,7 @@ class IntelligenceService:
             payload.molecule_id, db
         )
 
-        # Phase 3C: AI Strategic Advisor data
-        llm_narrative = await generate_executive_narrative(payload.molecule_id, db)
+        # AI strategic assessment removed in v1.0 — Strategic insights now derived directly from signal data
         timeline = await build_launch_timeline(payload.molecule_id, db)
         alert_report = await detect_threshold_breaches(payload.molecule_id, db)
         risk_profile = await calculate_regulatory_risk_weights(payload.molecule_id, db)
@@ -616,7 +614,6 @@ class IntelligenceService:
                 heatmap_html=heatmap_html,
                 heatmap_insights=heatmap_insights,
                 indication_landscape=indication_landscape,
-                llm_narrative=llm_narrative,
                 timeline=timeline,
                 visible_estimates=visible_estimates,
                 hidden_count=hidden_count,
@@ -624,7 +621,6 @@ class IntelligenceService:
                 alerts=email_alerts,
                 patent_cliffs=risk_profile.patent_cliffs,
                 molecule_id=str(payload.molecule_id),
-                insights=llm_narrative.key_insights,
             )
             response = EmailBriefingResponse(
                 html=html,
@@ -674,7 +670,6 @@ class IntelligenceService:
                 "tier_movements": tier_movements,
                 "indication_landscape": indication_landscape.model_dump(mode="json"),
                 "heatmap_insights": heatmap_insights,
-                "llm_narrative": llm_narrative.model_dump(mode="json"),
                 "timeline": timeline.model_dump(mode="json"),
                 "alerts": [a.model_dump(mode="json") for a in email_alerts],
                 "patent_cliffs": [p.model_dump(mode="json") for p in risk_profile.patent_cliffs],

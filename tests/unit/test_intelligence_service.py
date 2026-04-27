@@ -102,9 +102,31 @@ async def test_generate_email_briefing_html() -> None:
     mock_landscape.vulnerability_index = 30
     mock_landscape.model_dump.return_value = {}
 
+    mock_timeline = MagicMock()
+    mock_timeline.estimates = []
+    mock_timeline.imminent_threats = []
+    mock_timeline.model_dump.return_value = {}
+
+    mock_alerts = MagicMock()
+    mock_alerts.alerts = []
+    mock_alerts.model_dump.return_value = {}
+
+    mock_risk = MagicMock()
+    mock_risk.patent_cliffs = []
+    mock_risk.model_dump.return_value = {}
+
     with patch(
         "app.services.intelligence_service.build_indication_landscape",
         return_value=mock_landscape,
+    ), patch(
+        "app.services.intelligence_service.build_launch_timeline",
+        return_value=mock_timeline,
+    ), patch(
+        "app.services.intelligence_service.detect_threshold_breaches",
+        return_value=mock_alerts,
+    ), patch(
+        "app.services.intelligence_service.calculate_regulatory_risk_weights",
+        return_value=mock_risk,
     ):
         payload = EmailBriefingRequest(
             molecule_id=UUID("550e8400-e29b-41d4-a716-446655440000"),
@@ -115,7 +137,7 @@ async def test_generate_email_briefing_html() -> None:
         result = await service.generate_email_briefing(payload, mock_db)
 
     assert result.html is not None
-    assert "Trial summary" in result.html
+    assert "NSCLC" in result.html
     assert result.event_count == 1
     assert result.recipient == settings.APAC_EMAIL
     # Competitive landscape should be in the HTML
@@ -162,9 +184,31 @@ async def test_generate_email_briefing_json() -> None:
     mock_landscape.vulnerability_index = 0
     mock_landscape.model_dump.return_value = {"test": "data"}
 
+    mock_timeline = MagicMock()
+    mock_timeline.estimates = []
+    mock_timeline.imminent_threats = []
+    mock_timeline.model_dump.return_value = {}
+
+    mock_alerts = MagicMock()
+    mock_alerts.alerts = []
+    mock_alerts.model_dump.return_value = {}
+
+    mock_risk = MagicMock()
+    mock_risk.patent_cliffs = []
+    mock_risk.model_dump.return_value = {}
+
     with patch(
         "app.services.intelligence_service.build_indication_landscape",
         return_value=mock_landscape,
+    ), patch(
+        "app.services.intelligence_service.build_launch_timeline",
+        return_value=mock_timeline,
+    ), patch(
+        "app.services.intelligence_service.detect_threshold_breaches",
+        return_value=mock_alerts,
+    ), patch(
+        "app.services.intelligence_service.calculate_regulatory_risk_weights",
+        return_value=mock_risk,
     ):
         payload = EmailBriefingRequest(
             molecule_id=UUID("550e8400-e29b-41d4-a716-446655440000"),
@@ -233,9 +277,31 @@ async def test_generate_email_briefing_tier_movement() -> None:
     mock_landscape.vulnerability_index = 0
     mock_landscape.model_dump.return_value = {}
 
+    mock_timeline = MagicMock()
+    mock_timeline.estimates = []
+    mock_timeline.imminent_threats = []
+    mock_timeline.model_dump.return_value = {}
+
+    mock_alerts = MagicMock()
+    mock_alerts.alerts = []
+    mock_alerts.model_dump.return_value = {}
+
+    mock_risk = MagicMock()
+    mock_risk.patent_cliffs = []
+    mock_risk.model_dump.return_value = {}
+
     with patch(
         "app.services.intelligence_service.build_indication_landscape",
         return_value=mock_landscape,
+    ), patch(
+        "app.services.intelligence_service.build_launch_timeline",
+        return_value=mock_timeline,
+    ), patch(
+        "app.services.intelligence_service.detect_threshold_breaches",
+        return_value=mock_alerts,
+    ), patch(
+        "app.services.intelligence_service.calculate_regulatory_risk_weights",
+        return_value=mock_risk,
     ):
         payload = EmailBriefingRequest(
             molecule_id=UUID("550e8400-e29b-41d4-a716-446655440000"),

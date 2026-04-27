@@ -68,3 +68,15 @@ class RegionDashboard(BaseModel):
     top_competitor_by_presence: str
     top_competitor_rationale: str
     calculation_note: str
+
+
+class DashboardSummary(BaseModel):
+    total_signals_30d: int
+    total_signals_unique: int
+    active_countries: int
+    total_countries: int
+    watch_list_competitors: int
+    dormant_sources: int
+    pending_noise: int
+    timestamp: datetime
+    focus_molecules: list[str] = Field(default_factory=list)

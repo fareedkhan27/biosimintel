@@ -26,6 +26,7 @@ from app.models.signal import GeoSignal
 from app.models.social_media import SocialMediaRaw
 from app.schemas.dashboard import (
     CompetitorDashboard,
+    DashboardSummary,
     HeatmapCountry,
     RegionDashboard,
     SourceHealth,
@@ -882,25 +883,16 @@ async def get_regions(
     return result
 
 
-@router.get("/html", response_class=HTMLResponse)
-async def get_html_dashboard(
-    request: Request,
-    db: AsyncSession = Depends(get_db),
-) -> Any:
+async def _get_summary_data(db: AsyncSession) -> DashboardSummary:
     heatmap = await get_heatmap(
         db=db, region=None, country_code=None, operating_model=None
     )
-    timeline = await get_timeline(
-        db=db, region=None, tier=None, source=None, days=30, limit=50,
-        country_id=None, operating_model=None
-    )
     competitors = await get_competitors(db=db, region=None, operating_model=None, country_id=None)
     sources = await get_sources(db=db)
-    regions = await get_regions(db=db, operating_model=None)
 
-    total_signals_raw = sum(c.signal_count_30d for c in heatmap)
+    total_signals_30d = sum(c.signal_count_30d for c in heatmap)
     active_countries = sum(1 for c in heatmap if c.signal_count_30d > 0)
-    watch_list_count = sum(1 for c in competitors if c.watch_list)
+    watch_list_competitors = sum(1 for c in competitors if c.watch_list)
     dormant_sources = sum(1 for s in sources if s.status == "DORMANT")
 
     # Count unique events (distinct event_ids) for nivolumab/ipilimumab in last 30d
@@ -920,7 +912,41 @@ async def get_html_dashboard(
     )
     pending_noise = noise_result.scalar() or 0
 
-    now = datetime.now(UTC)
+    total_countries_result = await db.execute(
+        select(func.count(Country.id)).where(Country.is_active.is_(True))
+    )
+    total_countries = total_countries_result.scalar() or 0
+
+    return DashboardSummary(
+        total_signals_30d=total_signals_30d,
+        total_signals_unique=total_signals_unique,
+        active_countries=active_countries,
+        total_countries=total_countries,
+        watch_list_competitors=watch_list_competitors,
+        dormant_sources=dormant_sources,
+        pending_noise=pending_noise,
+        timestamp=datetime.now(UTC),
+        focus_molecules=["nivolumab", "ipilimumab"],
+    )
+
+
+@router.get("/html", response_class=HTMLResponse)
+async def get_html_dashboard(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+) -> Any:
+    heatmap = await get_heatmap(
+        db=db, region=None, country_code=None, operating_model=None
+    )
+    timeline = await get_timeline(
+        db=db, region=None, tier=None, source=None, days=30, limit=50,
+        country_id=None, operating_model=None
+    )
+    competitors = await get_competitors(db=db, region=None, operating_model=None, country_id=None)
+    sources = await get_sources(db=db)
+    regions = await get_regions(db=db, operating_model=None)
+
+    summary = await _get_summary_data(db)
 
     russia_result = await db.execute(
         select(Country).where(Country.code == "RU")
@@ -952,15 +978,36 @@ async def get_html_dashboard(
             "competitors": competitors,
             "sources": sources,
             "regions": regions,
-            "total_signals": total_signals_raw,
-            "total_signals_unique": total_signals_unique,
-            "active_countries": active_countries,
-            "watch_list_count": watch_list_count,
-            "dormant_sources": dormant_sources,
-            "pending_noise": pending_noise,
-            "now": now,
+            "total_signals": summary.total_signals_30d,
+            "total_signals_unique": summary.total_signals_unique,
+            "active_countries": summary.active_countries,
+            "watch_list_count": summary.watch_list_competitors,
+            "dormant_sources": summary.dormant_sources,
+            "pending_noise": summary.pending_noise,
+            "now": summary.timestamp,
             "russia_country_id": russia_country_id,
             "country_models": country_models,
             "country_regions": country_regions,
         },
     )
+
+
+@router.get("/summary", response_model=DashboardSummary)
+async def get_summary(
+    db: AsyncSession = Depends(get_db),
+) -> DashboardSummary:
+    return await _get_summary_data(db)
+
+
+@router.get("/json")
+async def get_dashboard_json(
+    db: AsyncSession = Depends(get_db),
+) -> dict[str, Any]:
+    return {
+        "summary": await get_summary(db=db),
+        "heatmap": await get_heatmap(db=db, region=None, country_code=None, operating_model=None),
+        "timeline": await get_timeline(db=db, region=None, tier=None, source=None, days=30, limit=50, country_id=None, operating_model=None),
+        "competitors": await get_competitors(db=db, region=None, operating_model=None, country_id=None),
+        "regions": await get_regions(db=db, operating_model=None),
+        "sources": await get_sources(db=db),
+    }

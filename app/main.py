@@ -56,6 +56,8 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "https://biosimintel.com",
+        "https://www.biosimintel.com",
+        "https://dashboard.biosimintel.com",
         "https://api.biosimintel.com",
         "http://localhost:8001",
         "https://n8n.cloud",
