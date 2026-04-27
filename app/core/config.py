@@ -19,6 +19,8 @@ class Settings(BaseSettings):
     REDIS_URL: str = "redis://localhost:6379/0"
 
     OPENROUTER_API_KEY: str = ""
+    OPENROUTER_BASE_URL: str = "https://openrouter.ai/api/v1"
+    OPENROUTER_ENABLED: bool = False
     OPENROUTER_MODEL_PRIMARY: str = "google/gemini-2.0-flash-001"
     OPENROUTER_MODEL_FALLBACK: str = "anthropic/claude-3.5-haiku"
 

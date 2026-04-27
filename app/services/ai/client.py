@@ -40,8 +40,12 @@ class AIClient:
     """Wrapper around OpenRouter with cost tracking and fallback."""
 
     def __init__(self) -> None:
+        if not settings.OPENROUTER_ENABLED or not settings.OPENROUTER_API_KEY:
+            raise RuntimeError(
+                "OpenRouter not configured. Set OPENROUTER_API_KEY and OPENROUTER_ENABLED=true"
+            )
         self.api_key = settings.OPENROUTER_API_KEY
-        self.base_url = "https://openrouter.ai/api/v1"
+        self.base_url = settings.OPENROUTER_BASE_URL
         self.client = httpx.AsyncClient(timeout=60.0)
 
     async def chat_completion(
