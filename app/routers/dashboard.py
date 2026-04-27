@@ -175,7 +175,8 @@ async def get_heatmap(
     if country_code:
         stmt = stmt.where(Country.code == country_code.upper())
     if operating_model and operating_model != "all":
-        stmt = stmt.where(Country.operating_model == operating_model.upper())
+        _model_normalized = operating_model.upper() if operating_model.upper() in ("LPM", "OPM") else operating_model.title()
+        stmt = stmt.where(Country.operating_model == _model_normalized)
 
     countries_result = await db.execute(stmt.order_by(Country.code))
     countries = list(countries_result.scalars().all())
@@ -379,8 +380,9 @@ async def get_timeline(
         stmt = stmt.where(GeoSignal.country_ids.contains([country_id]))
 
     if operating_model:
+        _model_normalized = operating_model.upper() if operating_model.upper() in ("LPM", "OPM") else operating_model.title()
         model_country_result = await db.execute(
-            select(Country.id).where(Country.operating_model == operating_model.upper())
+            select(Country.id).where(Country.operating_model == _model_normalized)
         )
         model_country_ids = [row[0] for row in model_country_result.all()]
         if model_country_ids:
@@ -487,7 +489,8 @@ async def get_competitors(
             if reg:
                 country_q = country_q.where(Country.region_id == reg.id)
     if operating_model and operating_model != "all":
-        country_q = country_q.where(Country.operating_model == operating_model.upper())
+        _model_normalized = operating_model.upper() if operating_model.upper() in ("LPM", "OPM") else operating_model.title()
+        country_q = country_q.where(Country.operating_model == _model_normalized)
 
     filtered_country_rows = await db.execute(country_q)
     filtered_country_ids = {row[0] for row in filtered_country_rows.all()}
@@ -798,7 +801,8 @@ async def get_regions(
 
         cq = select(Country).where(Country.region_id == region.id)
         if operating_model:
-            cq = cq.where(Country.operating_model == operating_model.upper())
+            _model_normalized = operating_model.upper() if operating_model.upper() in ("LPM", "OPM") else operating_model.title()
+            cq = cq.where(Country.operating_model == _model_normalized)
         countries = (await db.execute(cq)).scalars().all()
         country_ids = [cast(UUID, c.id) for c in countries]
 
